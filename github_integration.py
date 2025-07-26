@@ -47,9 +47,35 @@ class GitHubIntegration:
             'Content-Type': 'application/json',
         }
         
+        # Get the node_id from the issue
+        # PyGithub v2+ uses node_id as a direct attribute
+        node_id = None
+        
+        # Try different methods to get node_id
+        if hasattr(issue, 'node_id'):
+            node_id = issue.node_id
+        elif hasattr(issue, '_rawData') and 'node_id' in issue._rawData:
+            node_id = issue._rawData['node_id']
+        elif hasattr(issue, 'raw_data') and 'node_id' in issue.raw_data:
+            node_id = issue.raw_data['node_id']
+        else:
+            # As a last resort, make a REST API call to get the issue with node_id
+            headers = {
+                'Authorization': f'Bearer {self.token}',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+            api_url = f"https://api.github.com/repos/{Config.GITHUB_OWNER}/{Config.GITHUB_REPO}/issues/{issue.number}"
+            resp = requests.get(api_url, headers=headers)
+            if resp.status_code == 200:
+                issue_data = resp.json()
+                node_id = issue_data.get('node_id')
+        
+        if not node_id:
+            raise Exception(f"Unable to get node_id from issue #{issue.number}")
+        
         variables = {
             'projectId': project_id,
-            'contentId': issue.node_id
+            'contentId': node_id
         }
         
         response = requests.post(
