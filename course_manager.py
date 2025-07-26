@@ -23,40 +23,47 @@ class CourseManager:
         return sorted(courses)
     
     def get_course_info(self, course_id):
-        """Extract course title and UUID from course.yml"""
+        """Extract course title from en.md and UUID from course.yml"""
         course_yml_path = self.courses_path / course_id / 'course.yml'
+        en_md_path = self.courses_path / course_id / 'en.md'
         
         if not course_yml_path.exists():
             raise FileNotFoundError(f"Course file not found: {course_yml_path}")
         
+        if not en_md_path.exists():
+            raise FileNotFoundError(f"English markdown file not found: {en_md_path}")
+        
+        # Get UUID from course.yml
         with open(course_yml_path, 'r', encoding='utf-8') as f:
             course_data = yaml.safe_load(f)
         
-        # Extract level, name and UUID
-        level = course_data.get('level', '')
-        name = course_data.get('name', '')
-        uuid = course_data.get('uuid', '')
+        # The id field in course.yml is the UUID
+        uuid = course_data.get('id', '')
+        if not uuid:
+            raise ValueError(f"Missing id (UUID) in course.yml for {course_id}")
         
-        if not name or not uuid:
-            raise ValueError(f"Missing name or UUID in course.yml for {course_id}")
+        # Get title from en.md header
+        with open(en_md_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Extract title from the first H1 header
+        title_match = re.match(r'^#+\s+(.+)$', content.strip(), re.MULTILINE)
+        if title_match:
+            title = title_match.group(1).strip()
+        else:
+            # Fallback to name from course.yml if no header found
+            title = course_data.get('name', course_id)
         
         return {
             'id': course_id,
-            'level': level,
-            'name': name,
             'uuid': uuid,
-            'title': f"{level} {name}" if level else name
+            'title': title
         }
     
     def build_pbn_url(self, course_title, uuid, lang='en'):
         """Build PlanB Network URL"""
         # Clean and format the title
-        # Remove level prefix if present
-        title_parts = course_title.lower().split(' ', 1)
-        if len(title_parts) > 1 and title_parts[0] in ['beginner', 'intermediate', 'advanced', 'developer']:
-            clean_title = title_parts[1]
-        else:
-            clean_title = course_title.lower()
+        clean_title = course_title.lower()
         
         # Replace special characters and spaces with hyphens
         clean_title = re.sub(r'[^\w\s-]', '', clean_title)
