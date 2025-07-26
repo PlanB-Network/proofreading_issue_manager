@@ -195,7 +195,8 @@ def preview_course_issue():
                 'Status': 'To Do',
                 'Language': Config.LANGUAGES.get(data['language'], data['language']),
                 'Iteration': data['iteration'],
-                'Urgency': data['urgency']
+                'Urgency': data['urgency'],
+                'Content Type': 'course'
             }
         }
         
@@ -252,7 +253,8 @@ def create_course_issue():
             'Status': 'To Do',
             'Language': Config.LANGUAGES.get(data['language'], data['language']),
             'Iteration': data['iteration'],
-            'Urgency': data['urgency']
+            'Urgency': data['urgency'],
+            'Content Type': 'course'
         }
         
         github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
