@@ -2,14 +2,20 @@ from github import Github
 from fuzzywuzzy import fuzz, process
 import time
 from datetime import datetime, timedelta
+import subprocess
+from pathlib import Path
+import re
 
 class BranchSelector:
-    def __init__(self, github_token):
+    def __init__(self, github_token, local_repo_path=None):
         self.github = Github(github_token)
         self.repo = None
+        self.local_repo_path = Path(local_repo_path) if local_repo_path else None
         self._branches_cache = None
         self._cache_time = None
         self._cache_duration = timedelta(minutes=5)
+        self._local_branches_cache = None
+        self._local_cache_time = None
     
     def _get_repo(self):
         """Lazy load repository"""
@@ -17,8 +23,63 @@ class BranchSelector:
             self.repo = self.github.get_repo("PlanB-Network/bitcoin-educational-content")
         return self.repo
     
+    def get_local_branches(self):
+        """Get branches from local repository"""
+        if not self.local_repo_path or not self.local_repo_path.exists():
+            return []
+        
+        now = datetime.now()
+        
+        # Check if local cache is valid (1 minute cache)
+        if (self._local_branches_cache is not None and 
+            self._local_cache_time is not None and 
+            now - self._local_cache_time < timedelta(minutes=1)):
+            return self._local_branches_cache
+        
+        try:
+            # Run git command to get all branches (local and remote)
+            result = subprocess.run(
+                ['git', 'branch', '-a'],
+                cwd=self.local_repo_path,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            branches = []
+            for line in result.stdout.strip().split('\n'):
+                line = line.strip()
+                if line.startswith('*'):
+                    line = line[2:]  # Remove current branch marker
+                
+                # Extract branch name
+                if line.startswith('remotes/origin/'):
+                    branch = line.replace('remotes/origin/', '')
+                    if branch != 'HEAD':
+                        branches.append(branch)
+                else:
+                    branches.append(line)
+            
+            # Remove duplicates and sort
+            branches = sorted(list(set(branches)))
+            
+            # Update cache
+            self._local_branches_cache = branches
+            self._local_cache_time = now
+            
+            return branches
+        except Exception as e:
+            print(f"Error getting local branches: {e}")
+            return []
+    
     def get_branches(self, force_refresh=False):
         """Fetch all branches from repository with caching"""
+        # Try local first for better performance
+        local_branches = self.get_local_branches()
+        if local_branches:
+            return local_branches
+        
+        # Fallback to GitHub API
         now = datetime.now()
         
         # Check if cache is valid
@@ -45,24 +106,64 @@ class BranchSelector:
                 return self._branches_cache
             return ['dev', 'main']
     
-    def fuzzy_search(self, query, limit=10):
-        """Fuzzy search branches"""
-        if not query:
-            branches = self.get_branches()
-            # Return most common branches first
-            common_branches = ['dev', 'main', 'master']
-            other_branches = [b for b in branches if b not in common_branches]
-            return common_branches + other_branches[:limit-len(common_branches)]
-        
+    def fuzzy_search(self, query, limit=10, context=None):
+        """Fuzzy search branches with intelligent suggestions"""
         branches = self.get_branches()
+        
+        if not query:
+            # Smart default suggestions based on context
+            suggestions = []
+            
+            # Always include common branches
+            common_branches = ['dev', 'main', 'master']
+            for branch in common_branches:
+                if branch in branches:
+                    suggestions.append(branch)
+            
+            # If we have language context, suggest language-specific branches
+            if context and 'language' in context:
+                lang = context['language']
+                language_patterns = [
+                    f"{lang}-initial-upload",
+                    f"{lang}-proofreading",
+                    f"{lang}-translation",
+                    f"proofreading-{lang}",
+                    f"translation-{lang}"
+                ]
+                
+                for pattern in language_patterns:
+                    for branch in branches:
+                        if pattern in branch.lower() and branch not in suggestions:
+                            suggestions.append(branch)
+            
+            # Add other branches
+            other_branches = [b for b in branches if b not in suggestions]
+            suggestions.extend(other_branches[:limit-len(suggestions)])
+            
+            return suggestions[:limit]
         
         # If exact match exists, prioritize it
         if query in branches:
             return [query] + [b for b in branches if b != query][:limit-1]
         
-        # Use fuzzy matching
-        matches = process.extract(query, branches, scorer=fuzz.token_sort_ratio, limit=limit)
-        return [match[0] for match in matches if match[1] > 30]  # Only return matches with >30% similarity
+        # Smart matching with different strategies
+        results = []
+        
+        # 1. Exact prefix match
+        prefix_matches = [b for b in branches if b.lower().startswith(query.lower())]
+        results.extend(prefix_matches)
+        
+        # 2. Contains match
+        contains_matches = [b for b in branches if query.lower() in b.lower() and b not in results]
+        results.extend(contains_matches)
+        
+        # 3. Fuzzy matching for remaining slots
+        if len(results) < limit:
+            remaining_branches = [b for b in branches if b not in results]
+            fuzzy_matches = process.extract(query, remaining_branches, scorer=fuzz.token_sort_ratio, limit=limit-len(results))
+            results.extend([match[0] for match in fuzzy_matches if match[1] > 40])
+        
+        return results[:limit]
     
     def branch_exists(self, branch_name):
         """Check if a branch exists"""

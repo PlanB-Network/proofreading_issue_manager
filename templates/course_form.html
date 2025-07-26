@@ -39,14 +39,17 @@
 
                 <div class="form-group">
                     <label for="branch">GitHub Branch</label>
-                    <input type="text" 
-                           id="branch" 
-                           name="branch" 
-                           value="{{ default_branch }}"
-                           list="branch-list"
-                           required>
+                    <div class="input-with-loader">
+                        <input type="text" 
+                               id="branch" 
+                               name="branch" 
+                               value="{{ default_branch }}"
+                               list="branch-list"
+                               required>
+                        <span class="loader" id="branch-loader" style="display: none;"></span>
+                    </div>
                     <datalist id="branch-list"></datalist>
-                    <small>Start typing to search branches</small>
+                    <small>Start typing to search branches. Suggestions based on selected language.</small>
                 </div>
 
                 <div class="form-group">
@@ -130,29 +133,97 @@
             }
         });
 
-        // Branch search with debouncing
+        // Enhanced branch search with debouncing and language context
         let branchTimeout;
-        document.getElementById('branch').addEventListener('input', (e) => {
-            clearTimeout(branchTimeout);
-            branchTimeout = setTimeout(async () => {
-                const query = e.target.value;
+        let branchCache = {};
+        
+        // Load initial branch suggestions when language changes
+        document.getElementById('language').addEventListener('change', async (e) => {
+            const lang = e.target.value;
+            await loadBranchSuggestions('', lang);
+        });
+        
+        // Load initial suggestions on page load
+        async function loadBranchSuggestions(query = '', lang = null) {
+            const language = lang || document.getElementById('language').value;
+            const cacheKey = `${query}-${language}`;
+            const loader = document.getElementById('branch-loader');
+            
+            // Check cache first
+            if (branchCache[cacheKey]) {
+                updateBranchDatalist(branchCache[cacheKey]);
+                return;
+            }
+            
+            // Show loader
+            loader.style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/branches/search?q=${encodeURIComponent(query)}&lang=${encodeURIComponent(language)}`);
+                const data = await response.json();
                 
+                // Cache the result
+                branchCache[cacheKey] = data.branches;
+                updateBranchDatalist(data.branches);
+            } catch (error) {
+                console.error('Error loading branch suggestions:', error);
+            } finally {
+                // Hide loader
+                loader.style.display = 'none';
+            }
+        }
+        
+        function updateBranchDatalist(branches) {
+            const datalist = document.getElementById('branch-list');
+            datalist.innerHTML = '';
+            
+            branches.forEach(branch => {
+                const option = document.createElement('option');
+                option.value = branch;
+                datalist.appendChild(option);
+            });
+        }
+        
+        // Branch input with enhanced autocomplete
+        const branchInput = document.getElementById('branch');
+        
+        branchInput.addEventListener('focus', async () => {
+            // Load suggestions when field is focused
+            if (branchInput.value.length === 0) {
+                await loadBranchSuggestions();
+            }
+        });
+        
+        branchInput.addEventListener('input', (e) => {
+            clearTimeout(branchTimeout);
+            
+            // Immediate response for short queries
+            const query = e.target.value;
+            const delay = query.length < 3 ? 100 : 300;
+            
+            branchTimeout = setTimeout(async () => {
+                await loadBranchSuggestions(query);
+            }, delay);
+        });
+        
+        // Validate branch on blur
+        branchInput.addEventListener('blur', async () => {
+            const branch = branchInput.value;
+            if (branch) {
                 try {
-                    const response = await fetch(`/api/branches/search?q=${encodeURIComponent(query)}`);
+                    const response = await fetch(`/api/branches/validate/${encodeURIComponent(branch)}`);
                     const data = await response.json();
                     
-                    const datalist = document.getElementById('branch-list');
-                    datalist.innerHTML = '';
-                    
-                    data.branches.forEach(branch => {
-                        const option = document.createElement('option');
-                        option.value = branch;
-                        datalist.appendChild(option);
-                    });
+                    if (!data.exists) {
+                        branchInput.classList.add('warning');
+                        showMessage(`Branch '${branch}' might not exist. Double-check the name.`, 'warning');
+                    } else {
+                        branchInput.classList.remove('warning');
+                    }
                 } catch (error) {
-                    console.error('Error searching branches:', error);
+                    console.error('Error validating branch:', error);
                 }
-            }, 300);
+            }
         });
 
         // Preview functionality
@@ -257,6 +328,8 @@
 
         // Initialize
         loadCourses();
+        // Load initial branch suggestions
+        loadBranchSuggestions();
     </script>
 </body>
 </html>

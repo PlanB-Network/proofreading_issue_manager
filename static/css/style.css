@@ -182,6 +182,16 @@ main {
     border-color: var(--primary-color);
 }
 
+.form-group input.warning {
+    border-color: var(--warning-color);
+    background-color: #fffaf0;
+}
+
+.form-group input.error {
+    border-color: var(--error-color);
+    background-color: #fff5f5;
+}
+
 .form-group small {
     display: block;
     margin-top: 5px;
@@ -295,4 +305,46 @@ main {
 footer {
     margin-top: 30px;
     text-align: center;
+}
+
+/* Input with loader */
+.input-with-loader {
+    position: relative;
+}
+
+.input-with-loader input {
+    padding-right: 35px;
+}
+
+/* Loading spinner */
+.loader {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Smooth transitions */
+input, select {
+    transition: border-color 0.3s, background-color 0.3s;
+}
+
+/* Datalist styling hint */
+input::-webkit-calendar-picker-indicator {
+    opacity: 0.5;
+}
+
+input:focus::-webkit-calendar-picker-indicator {
+    opacity: 1;
 }

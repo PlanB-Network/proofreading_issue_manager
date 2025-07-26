@@ -21,7 +21,8 @@ def get_branch_selector():
     token = Config.GITHUB_TOKEN or session.get('github_token')
     if not token:
         return None
-    return BranchSelector(token)
+    repo_path = Config.BITCOIN_CONTENT_REPO_PATH or session.get('repo_path')
+    return BranchSelector(token, repo_path)
 
 def get_course_manager():
     """Get course manager instance"""
@@ -126,13 +127,15 @@ def api_course_info(course_id):
 def api_branch_search():
     """API endpoint for branch fuzzy search"""
     query = request.args.get('q', '')
+    language = request.args.get('lang', '')
     
     selector = get_branch_selector()
     if not selector:
         return jsonify({'error': 'GitHub token not configured'}), 400
     
     try:
-        branches = selector.fuzzy_search(query)
+        context = {'language': language} if language else None
+        branches = selector.fuzzy_search(query, context=context)
         return jsonify({'branches': branches})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
