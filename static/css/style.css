@@ -265,6 +265,13 @@ main {
     overflow-x: auto;
 }
 
+.modal-actions {
+    margin-top: 30px;
+    text-align: right;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
 /* Success Page */
 .success-box {
     text-align: center;
