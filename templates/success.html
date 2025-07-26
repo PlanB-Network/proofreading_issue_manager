@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Success - Proofreading Issue Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Issue Created Successfully! 🎉</h1>
+        </header>
+
+        <main>
+            <div class="success-box">
+                <p>Your proofreading issue has been created successfully.</p>
+                
+                {% if issue_number %}
+                <h2>Issue #{{ issue_number }}</h2>
+                {% endif %}
+                
+                {% if issue_url %}
+                <div class="url-container">
+                    <input type="text" 
+                           id="issue-url" 
+                           value="{{ issue_url }}" 
+                           readonly 
+                           class="url-input">
+                    <button id="copy-btn" class="btn btn-secondary">📋 Copy URL</button>
+                </div>
+                
+                <div class="actions">
+                    <a href="{{ issue_url }}" target="_blank" class="btn btn-primary">Open Issue on GitHub</a>
+                </div>
+                {% endif %}
+                
+                <div class="actions">
+                    <a href="{{ url_for('new_course_issue') }}" class="btn btn-secondary">Create Another Course Issue</a>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const urlInput = document.getElementById('issue-url');
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                const btn = document.getElementById('copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - Proofreading Issue Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Configuration</h1>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back</a>
+        </header>
+
+        <main>
+            <form id="config-form">
+                <div class="form-group">
+                    <label for="repo_path">Bitcoin Educational Content Repository Path</label>
+                    <input type="text" 
+                           id="repo_path" 
+                           name="repo_path" 
+                           placeholder="/path/to/bitcoin-educational-content"
+                           value="{{ config.get('repo_path', '') }}"
+                           required>
+                    <small>Absolute path to your local bitcoin-educational-content repository</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="github_token">GitHub Personal Access Token</label>
+                    <input type="password" 
+                           id="github_token" 
+                           name="github_token" 
+                           placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                           value="{{ config.get('github_token', '') }}"
+                           required>
+                    <small>Token needs repo and project permissions</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="default_branch">Default Branch</label>
+                    <input type="text" 
+                           id="default_branch" 
+                           name="default_branch" 
+                           value="{{ config.get('default_branch', 'dev') }}"
+                           required>
+                    <small>Default branch for GitHub links</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Configuration</button>
+            </form>
+
+            <div id="message" class="alert" style="display: none;"></div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        document.getElementById('config-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                messageDiv.style.display = 'block';
+                if (response.ok) {
+                    messageDiv.className = 'alert alert-success';
+                    messageDiv.textContent = result.message;
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    messageDiv.className = 'alert alert-error';
+                    messageDiv.textContent = result.message;
+                }
+            } catch (error) {
+                messageDiv.style.display = 'block';
+                messageDiv.className = 'alert alert-error';
+                messageDiv.textContent = 'Error saving configuration: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
