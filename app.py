@@ -187,9 +187,6 @@ def preview_course_issue():
             f"language - {data['language']}"
         ]
         
-        # Get course size
-        size = manager.get_course_size(data['course_id'], data['language'])
-        
         preview = {
             'title': title,
             'body': body,
@@ -198,8 +195,7 @@ def preview_course_issue():
                 'Status': 'To Do',
                 'Language': Config.LANGUAGES.get(data['language'], data['language']),
                 'Iteration': data['iteration'],
-                'Urgency': data['urgency'],
-                'Size': size
+                'Urgency': data['urgency']
             }
         }
         
@@ -251,16 +247,12 @@ def create_course_issue():
         # Create issue
         issue = github.create_issue(title, body, labels)
         
-        # Get course size
-        size = manager.get_course_size(data['course_id'], data['language'])
-        
         # Link to project with fields
         project_fields = {
             'Status': 'To Do',
             'Language': Config.LANGUAGES.get(data['language'], data['language']),
             'Iteration': data['iteration'],
-            'Urgency': data['urgency'],
-            'Size': size
+            'Urgency': data['urgency']
         }
         
         github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)

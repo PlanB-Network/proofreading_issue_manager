@@ -94,7 +94,6 @@ en github version: https://github.com/PlanB-Network/bitcoin-educational-content/
 - Language: Full language name
 - Iteration: 1st/2nd/3rd
 - Urgency: not urgent/urgent
-- Size: Automatically evaluated based on content
 
 ## Configuration
 
