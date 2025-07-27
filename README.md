@@ -90,11 +90,11 @@ en github version: https://github.com/PlanB-Network/bitcoin-educational-content/
 - language - {language}
 
 ### Project Fields
-- Status: "To Do"
-- Language: Full language name
-- Iteration: 1st/2nd/3rd
-- Urgency: not urgent/urgent
-- Content Type: "course"
+- Status: "Todo"
+- Language: Language code (e.g., "es", "it", "fr")
+- Iteration: "1st", "2nd", or "3rd"
+- Urgency: "not urgent" or "urgent"
+- Content Type: "Course"
 
 ## Configuration
 

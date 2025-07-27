@@ -177,11 +177,29 @@ class GitHubIntegration:
         """
         
         for field_name, field_value in fields.items():
+            # Try alternative field names if the exact match isn't found
+            actual_field_name = field_name
             if field_name not in field_map:
-                print(f"Warning: Field '{field_name}' not found in project")
-                continue
+                # Try some common alternatives
+                alternatives = {
+                    'Content Type': ['ContentType', 'Content type', 'content type', 'Type'],
+                    'Status': ['status', 'STATE', 'State']
+                }
+                
+                found = False
+                if field_name in alternatives:
+                    for alt in alternatives[field_name]:
+                        if alt in field_map:
+                            actual_field_name = alt
+                            found = True
+                            print(f"Using alternative field name '{alt}' for '{field_name}'")
+                            break
+                
+                if not found:
+                    print(f"Warning: Field '{field_name}' not found in project")
+                    continue
             
-            field_info = field_map[field_name]
+            field_info = field_map[actual_field_name]
             field_id = field_info['id']
             
             # Prepare the value based on field type

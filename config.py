@@ -8,7 +8,7 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
-    GITHUB_PROJECT_ID = os.environ.get('GITHUB_PROJECT_ID', 'PVT_kwDOBqLvls4AoSyF')  # From the image
+    GITHUB_PROJECT_ID = os.environ.get('GITHUB_PROJECT_ID', 'PVT_kwDOCbV58s4AlOvb')  # Content Translation & Proofreading Dashboard
     
     # Local repository path
     BITCOIN_CONTENT_REPO_PATH = os.environ.get('BITCOIN_CONTENT_REPO_PATH', '')

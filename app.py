@@ -195,11 +195,11 @@ def preview_course_issue():
             'body': body,
             'labels': labels,
             'project_fields': {
-                'Status': 'To Do',
-                'Language': Config.LANGUAGES.get(data['language'], data['language']),
+                'Status': 'Todo',  # Changed from 'To Do' to 'Todo'
+                'Language': data['language'],  # Show language code in preview
                 'Iteration': data['iteration'],
                 'Urgency': data['urgency'],
-                'Content Type': 'course'
+                'Content Type': 'Course'  # Changed from 'course' to 'Course'
             }
         }
         
@@ -252,12 +252,13 @@ def create_course_issue():
         issue = github.create_issue(title, body, labels)
         
         # Link to project with fields
+        # Use language code instead of full name
         project_fields = {
-            'Status': 'To Do',
-            'Language': Config.LANGUAGES.get(data['language'], data['language']),
+            'Status': 'Todo',  # Changed from 'To Do' to 'Todo'
+            'Language': data['language'],  # Use language code (e.g., 'it', 'es')
             'Iteration': data['iteration'],
             'Urgency': data['urgency'],
-            'Content Type': 'course'
+            'Content Type': 'Course'  # Changed from 'course' to 'Course'
         }
         
         github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
