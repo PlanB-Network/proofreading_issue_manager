@@ -6,9 +6,18 @@ from branch_selector import BranchSelector
 from github_integration import GitHubIntegration
 import os
 from pathlib import Path
+import requests
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Cache for Weblate languages
+weblate_languages_cache = {
+    'data': None,
+    'last_updated': None,
+    'ttl': timedelta(hours=24)  # Cache for 24 hours
+}
 
 def get_github_integration():
     """Get GitHub integration instance"""
@@ -182,6 +191,90 @@ def api_language_search():
     # Simple fuzzy matching
     results = []
     for lang in languages:
+        # Check if query matches in name or code
+        if query in lang['searchText']:
+            # Calculate a simple relevance score
+            score = 0
+            if lang['code'].lower() == query:
+                score = 100  # Exact code match
+            elif lang['code'].lower().startswith(query):
+                score = 90   # Code starts with query
+            elif lang['name'].lower().startswith(query):
+                score = 80   # Name starts with query
+            elif query in lang['name'].lower():
+                score = 70   # Query in name
+            else:
+                score = 60   # Query in code
+            
+            results.append((lang, score))
+    
+    # Sort by score and return top results
+    results.sort(key=lambda x: x[1], reverse=True)
+    return jsonify({'languages': [r[0] for r in results[:10]]})
+
+@app.route('/api/weblate/languages')
+def api_weblate_languages():
+    """API endpoint for Weblate languages with caching"""
+    global weblate_languages_cache
+    
+    # Check if cache is still valid
+    if (weblate_languages_cache['data'] is not None and 
+        weblate_languages_cache['last_updated'] is not None and
+        datetime.now() - weblate_languages_cache['last_updated'] < weblate_languages_cache['ttl']):
+        return jsonify({'languages': weblate_languages_cache['data']})
+    
+    try:
+        # Fetch languages from Weblate API
+        response = requests.get('https://weblate.planb.network/api/languages/', timeout=10)
+        response.raise_for_status()
+        
+        weblate_data = response.json()
+        languages = []
+        
+        # Process the results
+        results = weblate_data.get('results', [])
+        for lang in results:
+            # Extract language info
+            languages.append({
+                'code': lang.get('code', ''),
+                'name': lang.get('name', ''),
+                'display': f"{lang.get('name', '')} ({lang.get('code', '')})",
+                'searchText': f"{lang.get('name', '').lower()} {lang.get('code', '').lower()}"
+            })
+        
+        # Update cache
+        weblate_languages_cache['data'] = languages
+        weblate_languages_cache['last_updated'] = datetime.now()
+        
+        return jsonify({'languages': languages})
+    except Exception as e:
+        # Fallback to config languages if Weblate API fails
+        print(f"Error fetching Weblate languages: {e}")
+        languages = []
+        for code, name in Config.LANGUAGES.items():
+            languages.append({
+                'code': code,
+                'name': name,
+                'display': f"{name} ({code})",
+                'searchText': f"{name.lower()} {code.lower()}"
+            })
+        return jsonify({'languages': languages})
+
+@app.route('/api/weblate/languages/search')
+def api_weblate_language_search():
+    """API endpoint for Weblate language fuzzy search"""
+    query = request.args.get('q', '').lower()
+    
+    # First get all languages (from cache or API)
+    response = api_weblate_languages()
+    all_languages = response.get_json()['languages']
+    
+    if not query:
+        return jsonify({'languages': all_languages[:10]})  # Return first 10 if no query
+    
+    # Simple fuzzy matching
+    results = []
+    for lang in all_languages:
         # Check if query matches in name or code
         if query in lang['searchText']:
             # Calculate a simple relevance score
@@ -623,6 +716,103 @@ def create_tutorial_section_issue():
             'Iteration': data['iteration'],
             'Urgency': data['urgency'],
             'Content Type': 'Tutorial'
+        }
+        
+        github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
+        
+        return jsonify({
+            'success': True,
+            'issue_url': github.get_issue_url(issue),
+            'issue_number': issue.number
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Weblate routes
+@app.route('/weblate/new')
+def new_weblate_issue():
+    """Weblate issue creation form"""
+    # Check configuration
+    if not (Config.GITHUB_TOKEN or session.get('github_token')):
+        return redirect(url_for('config'))
+    
+    return render_template('weblate_form.html', 
+                         languages=Config.LANGUAGES,
+                         default_branch=Config.DEFAULT_BRANCH or session.get('default_branch', 'dev'))
+
+@app.route('/weblate/preview', methods=['POST'])
+def preview_weblate_issue():
+    """Preview the weblate issue before creation"""
+    data = request.get_json()
+    
+    try:
+        # Build issue title
+        title = f"[PROOFREADING] weblate - {data['language']}"
+        
+        # Build Weblate URL
+        weblate_url = f"{Config.WEBLATE_BASE_URL}/{data['language']}/"
+        
+        # Build issue body
+        body = f"Weblate Url: {weblate_url}"
+        
+        # Labels
+        labels = [
+            "website translation",
+            f"language - {data['language']}"
+        ]
+        
+        preview = {
+            'title': title,
+            'body': body,
+            'labels': labels,
+            'project_fields': {
+                'Status': 'Todo',
+                'Language': data['language'],
+                'Iteration': data['iteration'],
+                'Urgency': data['urgency'],
+                'Content Type': 'Weblate'
+            }
+        }
+        
+        return jsonify(preview)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/weblate/create', methods=['POST'])
+def create_weblate_issue():
+    """Create the weblate issue"""
+    data = request.get_json()
+    
+    github = get_github_integration()
+    if not github:
+        return jsonify({'error': 'GitHub token not configured'}), 400
+    
+    try:
+        # Build issue title
+        title = f"[PROOFREADING] weblate - {data['language']}"
+        
+        # Build Weblate URL
+        weblate_url = f"{Config.WEBLATE_BASE_URL}/{data['language']}/"
+        
+        # Build issue body
+        body = f"Weblate Url: {weblate_url}"
+        
+        # Labels
+        labels = [
+            "website translation",
+            f"language - {data['language']}"
+        ]
+        
+        # Create issue
+        issue = github.create_issue(title, body, labels)
+        
+        # Link to project with fields
+        project_fields = {
+            'Status': 'Todo',
+            'Language': data['language'],
+            'Iteration': data['iteration'],
+            'Urgency': data['urgency'],
+            'Content Type': 'Weblate'
         }
         
         github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)

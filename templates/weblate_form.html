@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Weblate Issue - Proofreading Issue Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Create Weblate Proofreading Issue</h1>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back</a>
+        </header>
+
+        <main>
+            <form id="weblate-form">
+                <div class="form-group">
+                    <label for="language">Proofreading Language</label>
+                    <input type="text" 
+                           id="language" 
+                           name="language" 
+                           placeholder="Type to search languages (e.g., Spanish, es, French, fr)"
+                           list="language-list"
+                           required>
+                    <datalist id="language-list"></datalist>
+                    <small>Search by language name or code</small>
+                    <input type="hidden" id="language-code" name="language_code">
+                </div>
+
+                <div class="form-group">
+                    <label for="branch">GitHub Branch</label>
+                    <div class="input-with-loader">
+                        <input type="text" 
+                               id="branch" 
+                               name="branch" 
+                               value="{{ default_branch }}"
+                               list="branch-list"
+                               required>
+                        <span class="loader" id="branch-loader" style="display: none;"></span>
+                    </div>
+                    <datalist id="branch-list"></datalist>
+                    <small>Start typing to search branches. Suggestions based on selected language.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="iteration">Iteration</label>
+                    <select id="iteration" name="iteration" required>
+                        <option value="1st">1st Proofreading</option>
+                        <option value="2nd">2nd Proofreading</option>
+                        <option value="3rd">3rd Proofreading</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="urgency">Urgency</label>
+                    <select id="urgency" name="urgency" required>
+                        <option value="not urgent">Not Urgent</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="preview-btn" class="btn btn-secondary">Preview Issue</button>
+                    <button type="submit" class="btn btn-primary">Create Issue</button>
+                </div>
+            </form>
+
+            <div id="message" class="alert" style="display: none;"></div>
+
+            <div id="preview-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Issue Preview</h2>
+                    <div id="preview-content"></div>
+                    <div class="modal-actions">
+                        <button id="confirm-create" class="btn btn-primary">Create Issue</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Language search functionality
+        let languageTimeout;
+        let selectedLanguageCode = '';
+        
+        const languageInput = document.getElementById('language');
+        const languageCodeInput = document.getElementById('language-code');
+        
+        async function loadLanguages(query = '') {
+            try {
+                // Use Weblate languages endpoint for this form
+                const response = await fetch(`/api/weblate/languages/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                const datalist = document.getElementById('language-list');
+                datalist.innerHTML = '';
+                
+                data.languages.forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang.display;
+                    option.setAttribute('data-code', lang.code);
+                    datalist.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading languages:', error);
+            }
+        }
+        
+        languageInput.addEventListener('input', (e) => {
+            clearTimeout(languageTimeout);
+            const query = e.target.value;
+            
+            // Check if the value matches a datalist option
+            const options = document.querySelectorAll('#language-list option');
+            let matched = false;
+            
+            options.forEach(option => {
+                if (option.value === query) {
+                    selectedLanguageCode = option.getAttribute('data-code');
+                    languageCodeInput.value = selectedLanguageCode;
+                    matched = true;
+                    // Update branch suggestions based on new language
+                    loadBranchSuggestions('', selectedLanguageCode);
+                }
+            });
+            
+            if (!matched) {
+                selectedLanguageCode = '';
+                languageCodeInput.value = '';
+            }
+            
+            languageTimeout = setTimeout(() => {
+                loadLanguages(query);
+            }, 300);
+        });
+        
+        languageInput.addEventListener('blur', () => {
+            // Validate that a language was selected
+            if (!selectedLanguageCode) {
+                languageInput.setCustomValidity('Please select a valid language from the list');
+            } else {
+                languageInput.setCustomValidity('');
+            }
+        });
+        
+        // Enhanced branch search with debouncing and language context
+        let branchTimeout;
+        let branchCache = {};
+        
+        // Load initial suggestions on page load
+        async function loadBranchSuggestions(query = '', lang = null) {
+            const language = lang || selectedLanguageCode;
+            const cacheKey = `${query}-${language}`;
+            const loader = document.getElementById('branch-loader');
+            
+            // Check cache first
+            if (branchCache[cacheKey]) {
+                updateBranchDatalist(branchCache[cacheKey]);
+                return;
+            }
+            
+            // Show loader
+            loader.style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/branches/search?q=${encodeURIComponent(query)}&lang=${encodeURIComponent(language)}`);
+                const data = await response.json();
+                
+                // Cache the result
+                branchCache[cacheKey] = data.branches;
+                updateBranchDatalist(data.branches);
+            } catch (error) {
+                console.error('Error loading branch suggestions:', error);
+            } finally {
+                // Hide loader
+                loader.style.display = 'none';
+            }
+        }
+        
+        function updateBranchDatalist(branches) {
+            const datalist = document.getElementById('branch-list');
+            datalist.innerHTML = '';
+            
+            branches.forEach(branch => {
+                const option = document.createElement('option');
+                option.value = branch;
+                datalist.appendChild(option);
+            });
+        }
+        
+        // Branch input with enhanced autocomplete
+        const branchInput = document.getElementById('branch');
+        
+        branchInput.addEventListener('focus', async () => {
+            // Load suggestions when field is focused
+            if (branchInput.value.length === 0) {
+                await loadBranchSuggestions();
+            }
+        });
+        
+        branchInput.addEventListener('input', (e) => {
+            clearTimeout(branchTimeout);
+            
+            // Immediate response for short queries
+            const query = e.target.value;
+            const delay = query.length < 3 ? 100 : 300;
+            
+            branchTimeout = setTimeout(async () => {
+                await loadBranchSuggestions(query);
+            }, delay);
+        });
+        
+        // Validate branch on blur
+        branchInput.addEventListener('blur', async () => {
+            const branch = branchInput.value;
+            if (branch) {
+                try {
+                    const response = await fetch(`/api/branches/validate/${encodeURIComponent(branch)}`);
+                    const data = await response.json();
+                    
+                    if (!data.exists) {
+                        branchInput.classList.add('warning');
+                        showMessage(`Branch '${branch}' might not exist. Double-check the name.`, 'warning');
+                    } else {
+                        branchInput.classList.remove('warning');
+                    }
+                } catch (error) {
+                    console.error('Error validating branch:', error);
+                }
+            }
+        });
+
+        // Preview functionality
+        document.getElementById('preview-btn').addEventListener('click', async () => {
+            const formData = new FormData(document.getElementById('weblate-form'));
+            const data = Object.fromEntries(formData);
+            
+            // Use the language code instead of display text
+            data.language = selectedLanguageCode;
+            
+            try {
+                const response = await fetch('/weblate/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const preview = await response.json();
+                    
+                    const content = `
+                        <h3>Title</h3>
+                        <pre>${preview.title}</pre>
+                        
+                        <h3>Body</h3>
+                        <pre>${preview.body}</pre>
+                        
+                        <h3>Labels</h3>
+                        <ul>
+                            ${preview.labels.map(label => `<li>${label}</li>`).join('')}
+                        </ul>
+                        
+                        <h3>Project Fields</h3>
+                        <ul>
+                            ${Object.entries(preview.project_fields).map(([key, value]) => 
+                                `<li><strong>${key}:</strong> ${value}</li>`
+                            ).join('')}
+                        </ul>
+                    `;
+                    
+                    document.getElementById('preview-content').innerHTML = content;
+                    document.getElementById('preview-modal').style.display = 'block';
+                } else {
+                    const error = await response.json();
+                    showMessage('Error: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error generating preview: ' + error.message, 'error');
+            }
+        });
+
+        // Modal close
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('preview-modal').style.display = 'none';
+        });
+
+        // Create issue
+        async function createIssue() {
+            const formData = new FormData(document.getElementById('weblate-form'));
+            const data = Object.fromEntries(formData);
+            
+            // Use the language code instead of display text
+            data.language = selectedLanguageCode;
+            
+            showMessage('Creating issue...', 'info');
+            
+            try {
+                const response = await fetch('/weblate/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    window.location.href = `/success?url=${encodeURIComponent(result.issue_url)}&number=${result.issue_number}`;
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error creating issue: ' + error.message, 'error');
+            }
+        }
+
+        // Form submission
+        document.getElementById('weblate-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            createIssue();
+        });
+
+        // Confirm create from preview
+        document.getElementById('confirm-create').addEventListener('click', () => {
+            document.getElementById('preview-modal').style.display = 'none';
+            createIssue();
+        });
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.style.display = 'block';
+        }
+
+        // Initialize
+        loadLanguages();
+        // Load initial branch suggestions
+        loadBranchSuggestions();
+    </script>
+</body>
+</html>

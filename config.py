@@ -57,8 +57,11 @@ class Config:
         'status_options': ['To Do', 'In Progress', 'Done'],
         'iteration_options': ['1st', '2nd', '3rd'],
         'urgency_options': ['not urgent', 'urgent'],
-        'content_type_options': ['course', 'tutorial', 'tutorial_section']
+        'content_type_options': ['course', 'tutorial', 'tutorial_section', 'Weblate']
     }
+    
+    # Weblate configuration
+    WEBLATE_BASE_URL = 'https://weblate.planb.network/projects/planb-network-website/website-elements'
     
     @classmethod
     def save_config(cls, config_data):
