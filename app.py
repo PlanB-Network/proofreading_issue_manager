@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from config import Config
 from course_manager import CourseManager
+from tutorial_manager import TutorialManager
 from branch_selector import BranchSelector
 from github_integration import GitHubIntegration
 import os
@@ -30,6 +31,13 @@ def get_course_manager():
     if not repo_path:
         return None
     return CourseManager(repo_path)
+
+def get_tutorial_manager():
+    """Get tutorial manager instance"""
+    repo_path = Config.BITCOIN_CONTENT_REPO_PATH or session.get('repo_path')
+    if not repo_path:
+        return None
+    return TutorialManager(repo_path)
 
 @app.route('/')
 def index():
@@ -259,6 +267,187 @@ def create_course_issue():
             'Iteration': data['iteration'],
             'Urgency': data['urgency'],
             'Content Type': 'Course'  # Changed from 'course' to 'Course'
+        }
+        
+        github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
+        
+        return jsonify({
+            'success': True,
+            'issue_url': github.get_issue_url(issue),
+            'issue_number': issue.number
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Tutorial routes
+@app.route('/tutorial/new')
+def new_tutorial_issue():
+    """Tutorial issue creation form"""
+    # Check configuration
+    if not (Config.GITHUB_TOKEN or session.get('github_token')):
+        return redirect(url_for('config'))
+    
+    if not (Config.BITCOIN_CONTENT_REPO_PATH or session.get('repo_path')):
+        return redirect(url_for('config'))
+    
+    return render_template('tutorial_form.html', 
+                         languages=Config.LANGUAGES,
+                         default_branch=Config.DEFAULT_BRANCH or session.get('default_branch', 'dev'))
+
+@app.route('/api/tutorials')
+def api_tutorials():
+    """API endpoint to get list of tutorials"""
+    manager = get_tutorial_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    try:
+        tutorials = manager.get_tutorials_list()
+        return jsonify({'tutorials': tutorials})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tutorials/search')
+def api_tutorials_search():
+    """API endpoint for tutorial fuzzy search"""
+    query = request.args.get('q', '')
+    
+    manager = get_tutorial_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    try:
+        tutorials = manager.search_tutorials(query)
+        return jsonify({'tutorials': tutorials})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tutorial/<category>/<name>')
+def api_tutorial_info(category, name):
+    """API endpoint to get tutorial information"""
+    manager = get_tutorial_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    try:
+        tutorial_info = manager.get_tutorial_info(category, name)
+        return jsonify(tutorial_info)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
+
+@app.route('/tutorial/preview', methods=['POST'])
+def preview_tutorial_issue():
+    """Preview the tutorial issue before creation"""
+    data = request.get_json()
+    
+    manager = get_tutorial_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    try:
+        # Parse category and name from the selection
+        tutorial_path = data['tutorial_path']
+        category, name = tutorial_path.split('/', 1)
+        
+        # Get tutorial info
+        tutorial_info = manager.get_tutorial_info(category, name)
+        
+        # Build URLs
+        pbn_url = manager.build_pbn_url(category, name, tutorial_info['title'], tutorial_info['id'], data['language'])
+        github_urls = manager.build_github_urls(category, name, data['language'], data['branch'])
+        
+        # Build issue title (no brackets around language)
+        title = f"[PROOFREADING] {category}/{name} - {data['language']}"
+        
+        # Build issue body
+        body_lines = [f"en PBN version: {pbn_url}"]
+        for lang, url in github_urls:
+            if lang == 'en':
+                body_lines.append(f"en github version: {url}")
+            else:
+                body_lines.append(f"{lang} github version: {url}")
+        
+        body = '\n'.join(body_lines)
+        
+        # Labels
+        labels = [
+            "content - tutorial",
+            "content proofreading",
+            f"language - {data['language']}"
+        ]
+        
+        preview = {
+            'title': title,
+            'body': body,
+            'labels': labels,
+            'project_fields': {
+                'Status': 'Todo',
+                'Language': data['language'],
+                'Iteration': data['iteration'],
+                'Urgency': data['urgency'],
+                'Content Type': 'Tutorial'
+            }
+        }
+        
+        return jsonify(preview)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/tutorial/create', methods=['POST'])
+def create_tutorial_issue():
+    """Create the tutorial issue"""
+    data = request.get_json()
+    
+    github = get_github_integration()
+    if not github:
+        return jsonify({'error': 'GitHub token not configured'}), 400
+    
+    manager = get_tutorial_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    try:
+        # Parse category and name from the selection
+        tutorial_path = data['tutorial_path']
+        category, name = tutorial_path.split('/', 1)
+        
+        # Get tutorial info
+        tutorial_info = manager.get_tutorial_info(category, name)
+        
+        # Build URLs
+        pbn_url = manager.build_pbn_url(category, name, tutorial_info['title'], tutorial_info['id'], data['language'])
+        github_urls = manager.build_github_urls(category, name, data['language'], data['branch'])
+        
+        # Build issue title (no brackets around language)
+        title = f"[PROOFREADING] {category}/{name} - {data['language']}"
+        
+        # Build issue body
+        body_lines = [f"en PBN version: {pbn_url}"]
+        for lang, url in github_urls:
+            if lang == 'en':
+                body_lines.append(f"en github version: {url}")
+            else:
+                body_lines.append(f"{lang} github version: {url}")
+        
+        body = '\n'.join(body_lines)
+        
+        # Labels
+        labels = [
+            "content - tutorial",
+            "content proofreading",
+            f"language - {data['language']}"
+        ]
+        
+        # Create issue
+        issue = github.create_issue(title, body, labels)
+        
+        # Link to project with fields
+        project_fields = {
+            'Status': 'Todo',
+            'Language': data['language'],
+            'Iteration': data['iteration'],
+            'Urgency': data['urgency'],
+            'Content Type': 'Tutorial'
         }
         
         github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
