@@ -30,11 +30,15 @@
 
                 <div class="form-group">
                     <label for="language">Proofreading Language</label>
-                    <select id="language" name="language" required>
-                        {% for code, name in languages.items() %}
-                        <option value="{{ code }}">{{ name }} ({{ code }})</option>
-                        {% endfor %}
-                    </select>
+                    <input type="text" 
+                           id="language" 
+                           name="language" 
+                           placeholder="Type to search languages (e.g., Spanish, es, French, fr)"
+                           list="language-list"
+                           required>
+                    <datalist id="language-list"></datalist>
+                    <small>Search by language name or code</small>
+                    <input type="hidden" id="language-code" name="language_code">
                 </div>
 
                 <div class="form-group">
@@ -135,19 +139,76 @@
             }
         });
 
+        // Language search functionality
+        let languageTimeout;
+        let selectedLanguageCode = '';
+        
+        const languageInput = document.getElementById('language');
+        const languageCodeInput = document.getElementById('language-code');
+        
+        async function loadLanguages(query = '') {
+            try {
+                const response = await fetch(`/api/languages/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                const datalist = document.getElementById('language-list');
+                datalist.innerHTML = '';
+                
+                data.languages.forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang.display;
+                    option.setAttribute('data-code', lang.code);
+                    datalist.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading languages:', error);
+            }
+        }
+        
+        languageInput.addEventListener('input', (e) => {
+            clearTimeout(languageTimeout);
+            const query = e.target.value;
+            
+            // Check if the value matches a datalist option
+            const options = document.querySelectorAll('#language-list option');
+            let matched = false;
+            
+            options.forEach(option => {
+                if (option.value === query) {
+                    selectedLanguageCode = option.getAttribute('data-code');
+                    languageCodeInput.value = selectedLanguageCode;
+                    matched = true;
+                    // Update branch suggestions based on new language
+                    loadBranchSuggestions('', selectedLanguageCode);
+                }
+            });
+            
+            if (!matched) {
+                selectedLanguageCode = '';
+                languageCodeInput.value = '';
+            }
+            
+            languageTimeout = setTimeout(() => {
+                loadLanguages(query);
+            }, 300);
+        });
+        
+        languageInput.addEventListener('blur', () => {
+            // Validate that a language was selected
+            if (!selectedLanguageCode) {
+                languageInput.setCustomValidity('Please select a valid language from the list');
+            } else {
+                languageInput.setCustomValidity('');
+            }
+        });
+        
         // Enhanced branch search with debouncing and language context
         let branchTimeout;
         let branchCache = {};
         
-        // Load initial branch suggestions when language changes
-        document.getElementById('language').addEventListener('change', async (e) => {
-            const lang = e.target.value;
-            await loadBranchSuggestions('', lang);
-        });
-        
         // Load initial suggestions on page load
         async function loadBranchSuggestions(query = '', lang = null) {
-            const language = lang || document.getElementById('language').value;
+            const language = lang || selectedLanguageCode;
             const cacheKey = `${query}-${language}`;
             const loader = document.getElementById('branch-loader');
             
@@ -233,6 +294,9 @@
             const formData = new FormData(document.getElementById('course-form'));
             const data = Object.fromEntries(formData);
             
+            // Use the language code instead of display text
+            data.language = selectedLanguageCode;
+            
             try {
                 const response = await fetch('/course/preview', {
                     method: 'POST',
@@ -286,6 +350,9 @@
             const formData = new FormData(document.getElementById('course-form'));
             const data = Object.fromEntries(formData);
             
+            // Use the language code instead of display text
+            data.language = selectedLanguageCode;
+            
             showMessage('Creating issue...', 'info');
             
             try {
@@ -330,6 +397,7 @@
 
         // Initialize
         loadCourses();
+        loadLanguages();
         // Load initial branch suggestions
         loadBranchSuggestions();
     </script>

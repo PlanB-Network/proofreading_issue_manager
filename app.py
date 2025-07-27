@@ -161,6 +161,48 @@ def api_validate_branch(branch_name):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/languages/search')
+def api_language_search():
+    """API endpoint for language fuzzy search"""
+    query = request.args.get('q', '').lower()
+    
+    # Convert language dict to searchable format
+    languages = []
+    for code, name in Config.LANGUAGES.items():
+        languages.append({
+            'code': code,
+            'name': name,
+            'display': f"{name} ({code})",
+            'searchText': f"{name.lower()} {code.lower()}"
+        })
+    
+    if not query:
+        return jsonify({'languages': languages[:10]})  # Return first 10 if no query
+    
+    # Simple fuzzy matching
+    results = []
+    for lang in languages:
+        # Check if query matches in name or code
+        if query in lang['searchText']:
+            # Calculate a simple relevance score
+            score = 0
+            if lang['code'].lower() == query:
+                score = 100  # Exact code match
+            elif lang['code'].lower().startswith(query):
+                score = 90   # Code starts with query
+            elif lang['name'].lower().startswith(query):
+                score = 80   # Name starts with query
+            elif query in lang['name'].lower():
+                score = 70   # Query in name
+            else:
+                score = 60   # Query in code
+            
+            results.append((lang, score))
+    
+    # Sort by score and return top results
+    results.sort(key=lambda x: x[1], reverse=True)
+    return jsonify({'languages': [r[0] for r in results[:10]]})
+
 @app.route('/course/preview', methods=['POST'])
 def preview_course_issue():
     """Preview the issue before creation"""
