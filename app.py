@@ -460,6 +460,139 @@ def create_tutorial_issue():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Tutorial Section routes
+@app.route('/tutorial-section/new')
+def new_tutorial_section_issue():
+    """Tutorial section issue creation form"""
+    # Check configuration
+    if not (Config.GITHUB_TOKEN or session.get('github_token')):
+        return redirect(url_for('config'))
+    
+    if not (Config.BITCOIN_CONTENT_REPO_PATH or session.get('repo_path')):
+        return redirect(url_for('config'))
+    
+    return render_template('tutorial_section_form.html', 
+                         languages=Config.LANGUAGES,
+                         default_branch=Config.DEFAULT_BRANCH or session.get('default_branch', 'dev'))
+
+@app.route('/api/tutorial-sections')
+def api_tutorial_sections():
+    """API endpoint to get all tutorial category sections"""
+    manager = get_tutorial_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    try:
+        sections = manager.get_tutorial_sections()
+        return jsonify({'sections': sections})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/tutorial-section/preview', methods=['POST'])
+def preview_tutorial_section_issue():
+    """Preview the tutorial section issue before creation"""
+    data = request.get_json()
+    
+    try:
+        # Get the section name
+        section = data['section']
+        
+        # Build issue title
+        title = f"[PROOFREADING] {section}_section - {data['language']}"
+        
+        # Build URLs
+        pbn_url = f"https://planb.network/{data['language']}/tutorials/{section}"
+        github_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/tutorials/{section}"
+        
+        # Build issue body
+        body_lines = [
+            f"English PBN Version: https://planb.network/en/tutorials/{section}",
+            f"Folder GitHub Version: {github_url}"
+        ]
+        
+        body = '\n'.join(body_lines)
+        
+        # Labels
+        labels = [
+            "content - tutorial",
+            "content proofreading",
+            f"language - {data['language']}"
+        ]
+        
+        preview = {
+            'title': title,
+            'body': body,
+            'labels': labels,
+            'project_fields': {
+                'Status': 'Todo',
+                'Language': data['language'],
+                'Iteration': data['iteration'],
+                'Urgency': data['urgency'],
+                'Content Type': 'Tutorial'
+            }
+        }
+        
+        return jsonify(preview)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/tutorial-section/create', methods=['POST'])
+def create_tutorial_section_issue():
+    """Create the tutorial section issue"""
+    data = request.get_json()
+    
+    github = get_github_integration()
+    if not github:
+        return jsonify({'error': 'GitHub token not configured'}), 400
+    
+    try:
+        # Get the section name
+        section = data['section']
+        
+        # Build issue title
+        title = f"[PROOFREADING] {section}_section - {data['language']}"
+        
+        # Build URLs
+        pbn_url = f"https://planb.network/{data['language']}/tutorials/{section}"
+        github_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/tutorials/{section}"
+        
+        # Build issue body
+        body_lines = [
+            f"English PBN Version: https://planb.network/en/tutorials/{section}",
+            f"Folder GitHub Version: {github_url}"
+        ]
+        
+        body = '\n'.join(body_lines)
+        
+        # Labels
+        labels = [
+            "content - tutorial",
+            "content proofreading",
+            f"language - {data['language']}"
+        ]
+        
+        # Create issue
+        issue = github.create_issue(title, body, labels)
+        
+        # Link to project with fields
+        project_fields = {
+            'Status': 'Todo',
+            'Language': data['language'],
+            'Iteration': data['iteration'],
+            'Urgency': data['urgency'],
+            'Content Type': 'Tutorial'
+        }
+        
+        github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
+        
+        return jsonify({
+            'success': True,
+            'issue_url': github.get_issue_url(issue),
+            'issue_number': issue.number
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/success')
 def success():
     """Success page after issue creation"""

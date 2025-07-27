@@ -169,3 +169,30 @@ class TutorialManager:
             return False, "English markdown file (en.md) not found"
         
         return True, "Tutorial structure is valid"
+    
+    def get_tutorial_sections(self):
+        """Get all main tutorial category sections (wallet, node, mining, etc.)"""
+        if not self.tutorials_path.exists():
+            return []
+        
+        sections = []
+        for category_dir in self.tutorials_path.iterdir():
+            if category_dir.is_dir() and not category_dir.name.startswith('.'):
+                # Check if it has any tutorials inside
+                has_tutorials = False
+                try:
+                    for subdir in category_dir.iterdir():
+                        if subdir.is_dir() and (subdir / 'tutorial.yml').exists():
+                            has_tutorials = True
+                            break
+                except:
+                    # Handle permission errors or other issues
+                    pass
+                
+                if has_tutorials:
+                    sections.append({
+                        'name': category_dir.name,
+                        'path': category_dir.name
+                    })
+        
+        return sorted(sections, key=lambda x: x['name'])
