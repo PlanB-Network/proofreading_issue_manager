@@ -75,16 +75,112 @@ fi
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then
-    print_warning ".env file not found. Creating from .env.example..."
-    if [ -f ".env.example" ]; then
-        cp .env.example .env
-        print_warning "Please edit .env file with your GitHub token and repository path"
-        print_warning "Opening .env file for editing..."
-        ${EDITOR:-nano} .env
+    print_warning ".env file not found. Let's set it up!"
+    echo ""
+    
+    # Function to prompt for input with a default value
+    prompt_with_default() {
+        local prompt="$1"
+        local default="$2"
+        local varname="$3"
+        
+        if [ -n "$default" ]; then
+            read -p "$prompt [$default]: " value
+            value="${value:-$default}"
+        else
+            read -p "$prompt: " value
+            while [ -z "$value" ]; do
+                print_error "This field is required!"
+                read -p "$prompt: " value
+            done
+        fi
+        
+        eval "$varname='$value'"
+    }
+    
+    print_status "Configuration Setup"
+    echo "==================="
+    echo ""
+    
+    # GitHub Token
+    echo "1. GitHub Personal Access Token"
+    echo "   You need a token with 'repo' and 'project' permissions."
+    echo "   Create one at: https://github.com/settings/tokens/new"
+    echo ""
+    prompt_with_default "Enter your GitHub token" "" "github_token"
+    echo ""
+    
+    # Repository Path
+    echo "2. Bitcoin Educational Content Repository Path"
+    echo "   This should be the absolute path to your local clone of:"
+    echo "   https://github.com/PlanB-Network/bitcoin-educational-content"
+    echo ""
+    
+    # Try to find the repo automatically
+    possible_paths=(
+        "$HOME/bitcoin-educational-content"
+        "$HOME/Documents/bitcoin-educational-content"
+        "$HOME/Projects/bitcoin-educational-content"
+        "$HOME/repos/bitcoin-educational-content"
+        "$HOME/github/bitcoin-educational-content"
+        "../bitcoin-educational-content"
+    )
+    
+    found_path=""
+    for path in "${possible_paths[@]}"; do
+        if [ -d "$path/courses" ]; then
+            found_path=$(realpath "$path")
+            break
+        fi
+    done
+    
+    if [ -n "$found_path" ]; then
+        prompt_with_default "Enter the repository path" "$found_path" "repo_path"
     else
-        print_error ".env.example not found. Please create a .env file manually."
-        exit 1
+        prompt_with_default "Enter the repository path" "" "repo_path"
     fi
+    
+    # Validate the path
+    while [ ! -d "$repo_path/courses" ]; do
+        print_error "Invalid path! The directory must contain a 'courses' folder."
+        prompt_with_default "Enter the repository path" "" "repo_path"
+    done
+    echo ""
+    
+    # Project ID
+    echo "3. GitHub Project ID (optional)"
+    echo "   Leave empty to use the default PlanB Network project."
+    echo ""
+    prompt_with_default "Enter GitHub Project ID" "PVT_kwDOCbV58s4AlOvb" "project_id"
+    echo ""
+    
+    # Default Branch
+    echo "4. Default Git Branch"
+    echo ""
+    prompt_with_default "Enter default branch" "dev" "default_branch"
+    echo ""
+    
+    # Secret Key
+    secret_key=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+    
+    # Create .env file
+    cat > .env << EOF
+# GitHub Configuration
+GITHUB_TOKEN=$github_token
+GITHUB_PROJECT_ID=$project_id
+
+# Local Repository Path
+BITCOIN_CONTENT_REPO_PATH=$repo_path
+
+# Default Branch
+DEFAULT_BRANCH=$default_branch
+
+# Flask Configuration
+SECRET_KEY=$secret_key
+EOF
+    
+    print_status ".env file created successfully!"
+    echo ""
 fi
 
 # Function to open browser

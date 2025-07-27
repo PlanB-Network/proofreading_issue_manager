@@ -5,7 +5,9 @@ A web-based tool to automate the creation of GitHub issues for the Bitcoin Educa
 ## Features
 
 - **Course Issue Creation**: Automatically create proofreading issues for courses with proper formatting and project linking
-- **Fuzzy Branch Search**: Easily find and select the correct GitHub branch
+- **Tutorial Issue Creation**: Create proofreading issues for individual tutorials with category-based organization
+- **Fuzzy Search**: Smart search for courses and tutorials with intelligent matching
+- **Fuzzy Branch Search**: Easily find and select the correct GitHub branch with context-aware suggestions
 - **Automatic URL Generation**: Generates both PlanB Network and GitHub URLs
 - **Project Integration**: Automatically links issues to the GitHub project board with proper field values
 - **Multi-language Support**: Handles proofreading for multiple languages with appropriate URL generation
@@ -18,139 +20,89 @@ A web-based tool to automate the creation of GitHub issues for the Bitcoin Educa
 
 ## Installation
 
+### Quick Install (Recommended)
+
 1. Clone this repository:
+
 ```bash
 git clone <repository-url>
 cd proofreading-issue-manager
 ```
 
-2. Create a virtual environment:
+2. Make the script executable and run it:
+
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Copy the example environment file:
-```bash
-cp .env.example .env
-```
-
-5. Edit `.env` and add your configuration:
-   - `GITHUB_TOKEN`: Your GitHub personal access token
-   - `BITCOIN_CONTENT_REPO_PATH`: Path to your local bitcoin-educational-content repository
-   - `GITHUB_PROJECT_ID`: The project board ID (default is provided)
-
-## Usage
-
-### Quick Start (Recommended)
-
-Run the startup script which handles everything automatically:
-```bash
+chmod +x run_pim_app.sh
 ./run_pim_app.sh
 ```
 
-This script will:
-- Create/activate a virtual environment
-- Install all requirements
-- Check for .env file configuration
-- Start the Flask server
+That's it! The script will:
+
+- Set up a virtual environment
+- Install all dependencies
+- Guide you through configuration (if needed)
+- Start the application
 - Open your browser automatically
 
-### Manual Start
+On first run, you'll be prompted for:
 
-If you prefer to start manually:
+- GitHub Personal Access Token (with 'repo' and 'project' permissions)
+- Path to your bitcoin-educational-content repository
+- Optional: Custom project ID and default branch
+
+### Windows Installation
+
+Simply double-click `run_pim_app.bat` or run it from Command Prompt:
+
 ```bash
-# Create and activate virtual environment
-python3 -m venv env
-source env/bin/activate  # On Windows: env\Scripts\activate
-
-# Install requirements
-pip install -r requirements.txt
-
-# Start the application
-python3 app.py
+run_pim_app.bat
 ```
 
-3. Configure the application:
-   - Click on "Configuration" 
-   - Enter your local repository path
-   - Enter your GitHub token
-   - Set the default branch (usually "dev")
+## Usage
 
-4. Create a course issue:
-   - Click "Create Course Issue"
-   - Select or type the course ID (e.g., btc101, csv402)
-   - Choose the proofreading language
-   - Select the GitHub branch (with fuzzy search)
-   - Choose iteration (1st, 2nd, or 3rd proofreading)
-   - Set urgency level
-   - Preview the issue before creation
-   - Click "Create Issue"
+After installation, simply run:
 
-## Issue Format
-
-### Title
-`[PROOFREADING] {course_id} - [{language}]`
-
-Example: `[PROOFREADING] csv402 - [fa]`
-
-### Body
-```
-en PBN version: https://planb.network/en/courses/{course-title}-{uuid}
-en github version: https://github.com/PlanB-Network/bitcoin-educational-content/blob/{branch}/courses/{course_id}/en.md
-{lang} github version: https://github.com/PlanB-Network/bitcoin-educational-content/blob/{branch}/courses/{course_id}/{lang}.md
+```bash
+./run_pim_app.sh  # Linux/macOS
 ```
 
-### Labels
-- content - course
-- content proofreading
-- language - {language}
+or
 
-### Project Fields
-- Status: "Todo"
-- Language: Language code (e.g., "es", "it", "fr")
-- Iteration: "1st", "2nd", or "3rd"
-- Urgency: "not urgent" or "urgent"
-- Content Type: "Course"
+```bash
+run_pim_app.bat   # Windows
+```
+
+The application will start and open in your browser at `http://localhost:5000`
 
 ## Configuration
 
 ### GitHub Token Permissions
+
 Your GitHub token needs the following permissions:
+
 - `repo` - Full control of private repositories
 - `project` - Read and write access to projects
 
 ### Project Board
+
 The tool is configured to work with the PlanB Network project board. The project ID is set in the configuration.
 
 ## Development
 
 ### Project Structure
+
 ```
 proofreading-issue-manager/
-├── .claude/spec/           # Specification files
 ├── static/                 # CSS and JavaScript files
 ├── templates/              # HTML templates
 ├── app.py                  # Main Flask application
 ├── config.py               # Configuration management
 ├── course_manager.py       # Course-specific logic
+├── tutorial_manager.py     # Tutorial-specific logic
 ├── branch_selector.py      # GitHub branch search
 ├── github_integration.py   # GitHub API integration
 └── requirements.txt        # Python dependencies
 ```
-
-### Adding New Issue Types
-To add support for tutorials or tutorial sections:
-1. Create a new spec file in `.claude/spec/`
-2. Add a new manager class (e.g., `tutorial_manager.py`)
-3. Add routes in `app.py`
-4. Create corresponding templates
-5. Update the home page to enable the new type
 
 ## Troubleshooting
 
@@ -172,19 +124,46 @@ To add support for tutorials or tutorial sections:
    - The fuzzy search will help find similar branch names
    - Ensure you're connected to the internet for branch fetching
 
+## Issue Types
+
+### Course Issues
+Creates issues for course proofreading with:
+- Title format: `[PROOFREADING] {course_id} - [{language}]`
+- Labels: `content - course`, `content proofreading`, `language - {lang}`
+- Project fields: Status, Language, Iteration, Urgency, Content Type
+
+### Tutorial Issues
+Creates issues for tutorial proofreading with:
+- Title format: `[PROOFREADING] {category}/{name} - {language}`
+- Labels: `content - tutorial`, `content proofreading`, `language - {lang}`
+- Project fields: Status, Language, Iteration, Urgency, Content Type
+
 ## Future Enhancements
 
-- [ ] Tutorial issue creation
+- [x] Course issue creation
+- [x] Tutorial issue creation
 - [ ] Tutorial section issue creation
-- [ ] Bulk issue creation
-- [ ] Issue status tracking
-- [ ] Dashboard for monitoring progress
-- [ ] Automatic size evaluation based on content analysis
 
 ## License
 
-[Add your license here]
+MIT License
 
-## Contributing
+Copyright (c) 2024 Proofreading Issue Manager Contributors
 
-[Add contribution guidelines here]
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
