@@ -171,7 +171,7 @@ def preview_course_issue():
         github_urls = manager.build_github_urls(data['course_id'], data['language'], data['branch'])
         
         # Build issue title
-        title = f"[PROOFREADING] {data['course_id']} - [{data['language']}]"
+        title = f"[PROOFREADING] {data['course_id']} - {data['language']}"
         
         # Build issue body
         body_lines = [f"en PBN version: {pbn_url}"]
