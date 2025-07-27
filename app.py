@@ -279,4 +279,22 @@ def success():
     return render_template('success.html', issue_url=issue_url, issue_number=issue_number)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    import os
+    import webbrowser
+    from threading import Timer
+    
+    # Only open browser on the first run, not on reloader
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        print("\n" + "="*50)
+        print("🚀 Proofreading Issue Manager")
+        print("="*50)
+        print("\n📍 Server starting at: http://localhost:5000")
+        print("📝 Press Ctrl+C to stop the server\n")
+        
+        # Open browser after a short delay
+        def open_browser():
+            webbrowser.open('http://localhost:5000')
+        
+        Timer(1.5, open_browser).start()
+    
+    app.run(debug=True, port=5000, host='127.0.0.1')

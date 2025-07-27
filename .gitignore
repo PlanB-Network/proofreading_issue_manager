@@ -34,3 +34,4 @@ build/
 *.egg-info/
 .claude/spec
 .claude/spec
+os

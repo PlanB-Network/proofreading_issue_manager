@@ -47,12 +47,34 @@ cp .env.example .env
 
 ## Usage
 
-1. Start the application:
+### Quick Start (Recommended)
+
+Run the startup script which handles everything automatically:
 ```bash
-python app.py
+./run_pim_app.sh
 ```
 
-2. Open your browser and navigate to `http://localhost:5000`
+This script will:
+- Create/activate a virtual environment
+- Install all requirements
+- Check for .env file configuration
+- Start the Flask server
+- Open your browser automatically
+
+### Manual Start
+
+If you prefer to start manually:
+```bash
+# Create and activate virtual environment
+python3 -m venv env
+source env/bin/activate  # On Windows: env\Scripts\activate
+
+# Install requirements
+pip install -r requirements.txt
+
+# Start the application
+python3 app.py
+```
 
 3. Configure the application:
    - Click on "Configuration" 
