@@ -1,0 +1,28 @@
+{
+  "tutorials": [
+    {
+      "category": "wallet",
+      "name": "electrum",
+      "id": "987f6543-e21b-12d3-a456-426614174000",
+      "title": "Electrum Wallet Tutorial"
+    },
+    {
+      "category": "wallet",
+      "name": "sparrow",
+      "id": "987f6543-e21b-12d3-a456-426614174001",
+      "title": "Sparrow Wallet Guide"
+    },
+    {
+      "category": "node",
+      "name": "bitcoin-core",
+      "id": "987f6543-e21b-12d3-a456-426614174002",
+      "title": "Running Bitcoin Core"
+    },
+    {
+      "category": "mining",
+      "name": "mining-basics",
+      "id": "987f6543-e21b-12d3-a456-426614174003",
+      "title": "Bitcoin Mining Fundamentals"
+    }
+  ]
+}

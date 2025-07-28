@@ -1,0 +1,22 @@
+{
+  "courses": [
+    {
+      "id": "btc101",
+      "uuid": "123e4567-e89b-12d3-a456-426614174000",
+      "title": "Bitcoin Fundamentals",
+      "title_slug": "bitcoin-fundamentals"
+    },
+    {
+      "id": "ln201",
+      "uuid": "456e7890-e89b-12d3-a456-426614174001",
+      "title": "Lightning Network Basics",
+      "title_slug": "lightning-network-basics"
+    },
+    {
+      "id": "dev301",
+      "uuid": "789e0123-e89b-12d3-a456-426614174002",
+      "title": "Bitcoin Development",
+      "title_slug": "bitcoin-development"
+    }
+  ]
+}
