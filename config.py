@@ -57,7 +57,7 @@ class Config:
         'status_options': ['To Do', 'In Progress', 'Done'],
         'iteration_options': ['1st', '2nd', '3rd'],
         'urgency_options': ['not urgent', 'urgent'],
-        'content_type_options': ['course', 'tutorial', 'tutorial_section', 'Weblate']
+        'content_type_options': ['course', 'tutorial', 'tutorial_section', 'Weblate', 'Video Course', 'Image Course']
     }
     
     # Weblate configuration

@@ -54,10 +54,17 @@ class CourseManager:
             # Fallback to name from course.yml if no header found
             title = course_data.get('name', course_id)
         
+        # Generate title slug for URL
+        title_slug = title.lower()
+        title_slug = re.sub(r'[^\w\s-]', '', title_slug)
+        title_slug = re.sub(r'[-\s]+', '-', title_slug)
+        title_slug = title_slug.strip('-')
+        
         return {
             'id': course_id,
             'uuid': uuid,
-            'title': title
+            'title': title,
+            'title_slug': title_slug
         }
     
     def build_pbn_url(self, course_title, uuid, lang='en'):

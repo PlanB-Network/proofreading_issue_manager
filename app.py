@@ -825,6 +825,140 @@ def create_weblate_issue():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Video Course routes
+@app.route('/video-course/new')
+def new_video_course_issue():
+    """Video course issue creation form"""
+    # Check configuration
+    if not (Config.GITHUB_TOKEN or session.get('github_token')):
+        return redirect(url_for('config'))
+    
+    if not (Config.BITCOIN_CONTENT_REPO_PATH or session.get('repo_path')):
+        return redirect(url_for('config'))
+    
+    return render_template('video_course_form.html', 
+                         languages=Config.LANGUAGES,
+                         default_branch=Config.DEFAULT_BRANCH or session.get('default_branch', 'dev'))
+
+@app.route('/video-course/preview', methods=['POST'])
+def preview_video_course_issue():
+    """Preview the video course issue before creation"""
+    data = request.get_json()
+    
+    manager = get_course_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    try:
+        # Get course info
+        course_info = manager.get_course_info(data['course_id'])
+        
+        # Build issue title
+        title = f"[VIDEO-PROOFREADING] {data['course_id']} - {data['language']}"
+        
+        # Build URLs
+        planb_url = f"https://planb.network/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
+        github_base_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/courses/{data['course_id']}"
+        
+        # Build issue body
+        body_lines = [
+            f"English PBN Version: https://planb.network/en/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}",
+            f"EN GitHub Version: {github_base_url}/en.md",
+            f"{data['language']} GitHub Version: {github_base_url}/{data['language']}.md",
+            f"Workspace link shared privately"
+        ]
+        
+        body = '\n'.join(body_lines)
+        
+        # Labels
+        labels = [
+            "content - course",
+            "content proofreading",
+            f"language - {data['language']}",
+            "video transcript"
+        ]
+        
+        preview = {
+            'title': title,
+            'body': body,
+            'labels': labels,
+            'project_fields': {
+                'Status': 'Todo',
+                'Language': data['language'],
+                'Iteration': data['iteration'],
+                'Urgency': data['urgency'],
+                'Content Type': 'Video Course'
+            }
+        }
+        
+        return jsonify(preview)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/video-course/create', methods=['POST'])
+def create_video_course_issue():
+    """Create the video course issue"""
+    data = request.get_json()
+    
+    manager = get_course_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    github = get_github_integration()
+    if not github:
+        return jsonify({'error': 'GitHub token not configured'}), 400
+    
+    try:
+        # Get course info
+        course_info = manager.get_course_info(data['course_id'])
+        
+        # Build issue title
+        title = f"[VIDEO-PROOFREADING] {data['course_id']} - {data['language']}"
+        
+        # Build URLs
+        planb_url = f"https://planb.network/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
+        github_base_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/courses/{data['course_id']}"
+        
+        # Build issue body
+        body_lines = [
+            f"English PBN Version: https://planb.network/en/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}",
+            f"EN GitHub Version: {github_base_url}/en.md",
+            f"{data['language']} GitHub Version: {github_base_url}/{data['language']}.md",
+            f"Workspace link shared privately"
+        ]
+        
+        body = '\n'.join(body_lines)
+        
+        # Labels
+        labels = [
+            "content - course",
+            "content proofreading",
+            f"language - {data['language']}",
+            "video transcript"
+        ]
+        
+        # Create issue
+        issue = github.create_issue(title, body, labels)
+        
+        # Link to project with fields
+        project_fields = {
+            'Status': 'Todo',
+            'Language': data['language'],
+            'Iteration': data['iteration'],
+            'Urgency': data['urgency'],
+            'Content Type': 'Video Course'
+        }
+        
+        github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
+        
+        return jsonify({
+            'success': True,
+            'issue_url': github.get_issue_url(issue),
+            'issue_number': issue.number
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/success')
 def success():
     """Success page after issue creation"""

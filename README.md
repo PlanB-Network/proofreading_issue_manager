@@ -8,6 +8,7 @@ A web-based tool to automate the creation of GitHub issues for the Bitcoin Educa
 - **Tutorial Issue Creation**: Create proofreading issues for individual tutorials with category-based organization
 - **Tutorial Section Issue Creation**: Create proofreading issues for tutorial subfolders/sections
 - **Weblate Issue Creation**: Create proofreading issues for website translations on Weblate
+- **Video Course Issue Creation**: Create proofreading issues for video course transcripts
 - **Fuzzy Search**: Smart search for courses, tutorials, and languages with intelligent matching
 - **Fuzzy Branch Search**: Easily find and select the correct GitHub branch with context-aware suggestions
 - **Automatic URL Generation**: Generates both PlanB Network and GitHub URLs
@@ -154,12 +155,20 @@ Creates issues for website translation proofreading with:
 - Project fields: Status, Language, Iteration, Urgency, Content Type
 - Automatic Weblate URL generation for the selected language
 
+### Video Course Issues
+Creates issues for video course transcript proofreading with:
+- Title format: `[VIDEO-PROOFREADING] {course_id} - {language}`
+- Labels: `content - course`, `content proofreading`, `language - {lang}`, `video transcript`
+- Project fields: Status, Language, Iteration, Urgency, Content Type (Video Course)
+- Includes "Workspace link shared privately" in issue body
+
 ## Future Enhancements
 
 - [x] Course issue creation
 - [x] Tutorial issue creation
 - [x] Tutorial section issue creation
 - [x] Weblate issue creation
+- [x] Video course issue creation
 
 ## License
 
