@@ -20,37 +20,68 @@ class Config:
     GITHUB_OWNER = 'PlanB-Network'
     GITHUB_REPO = 'bitcoin-educational-content'
     
-    # Language mapping
-    LANGUAGES = {
-        'en': 'English',
-        'fr': 'French',
-        'es': 'Spanish',
-        'de': 'German',
-        'it': 'Italian',
-        'pt': 'Portuguese',
-        'ja': 'Japanese',
-        'ko': 'Korean',
-        'zh': 'Chinese',
-        'ar': 'Arabic',
-        'fa': 'Persian',
-        'pl': 'Polish',
-        'ru': 'Russian',
-        'nl': 'Dutch',
-        'tr': 'Turkish',
-        'vi': 'Vietnamese',
-        'hi': 'Hindi',
-        'cs': 'Czech',
-        'fi': 'Finnish',
-        'el': 'Greek',
-        'he': 'Hebrew',
-        'hu': 'Hungarian',
-        'id': 'Indonesian',
-        'nb': 'Norwegian',
-        'ro': 'Romanian',
-        'sv': 'Swedish',
-        'th': 'Thai',
-        'uk': 'Ukrainian'
-    }
+    # Language mapping - loaded from supported_languages.json
+    @staticmethod
+    def _load_languages_from_file():
+        """Load languages from the bitcoin-educational-content repo"""
+        languages = {}
+        
+        # Try to load from the configured repo path
+        bitcoin_path = os.environ.get('BITCOIN_CONTENT_REPO_PATH', '')
+        if bitcoin_path:
+            json_path = Path(bitcoin_path) / 'scripts' / 'auto-translate' / 'translation_logic' / 'supported_languages.json'
+            if json_path.exists():
+                try:
+                    with open(json_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        for lang in data.get('languages', []):
+                            code = lang.get('code', '')
+                            name = lang.get('name', '')
+                            if code and name:
+                                languages[code] = name
+                    return languages
+                except Exception as e:
+                    print(f"Error loading languages from {json_path}: {e}")
+        
+        # Fallback to hardcoded languages if file not found
+        return {
+            'cs': 'Czech',
+            'de': 'German',
+            'en': 'English',
+            'es': 'Spanish',
+            'et': 'Estonian',
+            'fa': 'Farsi',
+            'fi': 'Finnish',
+            'fr': 'French',
+            'hi': 'Hindi',
+            'id': 'Indonesian',
+            'it': 'Italian',
+            'ja': 'Japanese',
+            'nb-NO': 'Norwegian',
+            'nl': 'Dutch',
+            'pl': 'Polish',
+            'pt': 'Portuguese',
+            'rn': 'Rundi',
+            'ro': 'Romanian',
+            'ru': 'Russian',
+            'si': 'Sinhala',
+            'sr-Latn': 'Serbian',
+            'sv': 'Swedish',
+            'sw': 'Swahili',
+            'th': 'Thai',
+            'vi': 'Vietnamese',
+            'zh-Hans': 'Chinese Simplified',
+            'zh-Hant': 'Chinese Traditional'
+        }
+    
+    # Initialize languages
+    LANGUAGES = _load_languages_from_file()
+    
+    @classmethod
+    def reload_languages(cls):
+        """Reload languages from file - useful when the repo path changes"""
+        cls.LANGUAGES = cls._load_languages_from_file()
+        return cls.LANGUAGES
     
     # Project field mappings
     PROJECT_FIELDS = {

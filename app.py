@@ -12,6 +12,20 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Load saved configuration at startup
+saved_config = Config.load_config()
+if saved_config:
+    if 'repo_path' in saved_config:
+        Config.BITCOIN_CONTENT_REPO_PATH = saved_config['repo_path']
+        os.environ['BITCOIN_CONTENT_REPO_PATH'] = saved_config['repo_path']
+    if 'github_token' in saved_config:
+        Config.GITHUB_TOKEN = saved_config['github_token']
+        os.environ['GITHUB_TOKEN'] = saved_config['github_token']
+    if 'default_branch' in saved_config:
+        Config.DEFAULT_BRANCH = saved_config['default_branch']
+    # Reload languages with the loaded config
+    Config.reload_languages()
+
 # Cache for Weblate languages
 weblate_languages_cache = {
     'data': None,
@@ -78,6 +92,14 @@ def config():
                     return jsonify({'success': False, 'message': f'Invalid GitHub token: {token_message}'}), 400
             except Exception as e:
                 return jsonify({'success': False, 'message': f'GitHub token error: {str(e)}'}), 400
+        
+        # Update Config values
+        Config.BITCOIN_CONTENT_REPO_PATH = repo_path
+        Config.GITHUB_TOKEN = github_token
+        Config.DEFAULT_BRANCH = data.get('default_branch', 'dev')
+        
+        # Reload languages from the new repo path
+        Config.reload_languages()
         
         # Save configuration
         config_data = {
