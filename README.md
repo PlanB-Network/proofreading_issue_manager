@@ -165,8 +165,8 @@ Creates issues for video course transcript proofreading with:
 
 ### Image Course Issues
 Creates issues for course image proofreading with:
-- Title format: `[IMAGE-PROOFREADING] {course_id} - [{language}]`
-- Labels: `content - course`, `content - images`, `language - [{lang}]`
+- Title format: `[IMAGE-PROOFREADING] {course_id} - {language}`
+- Labels: `content - course`, `content - images`, `language - {lang}`
 - Project fields: Status, Language, Iteration, Urgency, Content Type (Image Course)
 - Points to course assets folder on GitHub
 - Includes "Workspace link shared privately" in issue body

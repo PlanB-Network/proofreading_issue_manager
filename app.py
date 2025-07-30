@@ -1018,8 +1018,8 @@ def preview_image_course_issue():
         
         # Build issue body
         body_lines = [
-            f"English PBN Version: [{planb_url}]",
-            f"EN GitHub Version: [{github_base_url}/en/]",
+            f"English PBN Version: {planb_url}",
+            f"EN GitHub Version: {github_base_url}/en/",
             f"Workspace link shared privately"
         ]
         
@@ -1029,7 +1029,7 @@ def preview_image_course_issue():
         labels = [
             "content - course",
             "content - images",
-            f"language - [{data['language']}]"
+            f"language - {data['language']}"
         ]
         
         preview = {
@@ -1086,7 +1086,7 @@ def create_image_course_issue():
         labels = [
             "content - course",
             "content - images",
-            f"language - [{data['language']}]"
+            f"language - {data['language']}"
         ]
         
         # Create issue
