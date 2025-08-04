@@ -981,6 +981,128 @@ def create_video_course_issue():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Quiz routes
+@app.route('/quiz/new')
+def new_quiz_issue():
+    """Quiz issue creation form"""
+    # Check configuration
+    if not (Config.GITHUB_TOKEN or session.get('github_token')):
+        return redirect(url_for('config'))
+    
+    if not (Config.BITCOIN_CONTENT_REPO_PATH or session.get('repo_path')):
+        return redirect(url_for('config'))
+    
+    return render_template('quiz_form.html', 
+                         languages=Config.LANGUAGES,
+                         default_branch=Config.DEFAULT_BRANCH or session.get('default_branch', 'dev'))
+
+@app.route('/quiz/preview', methods=['POST'])
+def preview_quiz_issue():
+    """Preview the quiz issue before creation"""
+    data = request.get_json()
+    
+    manager = get_course_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    try:
+        # Get course info
+        course_info = manager.get_course_info(data['course_id'])
+        
+        # Build issue title
+        title = f"[QUIZ-PROOFREADING] {data['course_id']} - {data['language']}"
+        
+        # Build URLs
+        quiz_main_folder = f"https://github.com/PlanB-Network/bitcoin-educational-content/tree/dev/courses/{data['course_id']}/quizz"
+        
+        # Build issue body
+        body_lines = [
+            f"quiz main folder: {quiz_main_folder}"
+        ]
+        
+        body = '\n'.join(body_lines)
+        
+        # Labels
+        labels = [
+            "content - quizz",
+            f"language - {data['language']}"
+        ]
+        
+        preview = {
+            'title': title,
+            'body': body,
+            'labels': labels,
+            'project_fields': {
+                'Status': 'Todo',
+                'Language': data['language'],
+                'Iteration': data['iteration'],
+                'Urgency': data['urgency'],
+                'Content Type': 'Quizz'
+            }
+        }
+        
+        return jsonify(preview)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/quiz/create', methods=['POST'])
+def create_quiz_issue():
+    """Create the quiz issue"""
+    data = request.get_json()
+    
+    manager = get_course_manager()
+    if not manager:
+        return jsonify({'error': 'Repository path not configured'}), 400
+    
+    github = get_github_integration()
+    if not github:
+        return jsonify({'error': 'GitHub token not configured'}), 400
+    
+    try:
+        # Get course info
+        course_info = manager.get_course_info(data['course_id'])
+        
+        # Build issue title
+        title = f"[QUIZ-PROOFREADING] {data['course_id']} - {data['language']}"
+        
+        # Build URLs
+        quiz_main_folder = f"https://github.com/PlanB-Network/bitcoin-educational-content/tree/dev/courses/{data['course_id']}/quizz"
+        
+        # Build issue body
+        body_lines = [
+            f"quiz main folder: {quiz_main_folder}"
+        ]
+        
+        body = '\n'.join(body_lines)
+        
+        # Labels
+        labels = [
+            "content - quizz",
+            f"language - {data['language']}"
+        ]
+        
+        # Create issue
+        issue = github.create_issue(title, body, labels)
+        
+        # Link to project with fields
+        project_fields = {
+            'Status': 'Todo',
+            'Language': data['language'],
+            'Iteration': data['iteration'],
+            'Urgency': data['urgency'],
+            'Content Type': 'Quizz'
+        }
+        
+        github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
+        
+        return jsonify({
+            'success': True,
+            'issue_url': github.get_issue_url(issue),
+            'issue_number': issue.number
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Image Course routes
 @app.route('/image-course/new')
 def new_image_course_issue():

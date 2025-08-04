@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz Issue - Proofreading Issue Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Create Quiz Proofreading Issue</h1>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back</a>
+        </header>
+
+        <main>
+            <form id="quiz-form">
+                <div class="form-group">
+                    <label for="course_id">Course ID</label>
+                    <input type="text" 
+                           id="course_id" 
+                           name="course_id" 
+                           placeholder="e.g., btc101, csv402"
+                           list="course-list"
+                           required>
+                    <datalist id="course-list"></datalist>
+                    <small>Start typing to see available courses</small>
+                    <div id="course-info" class="course-info" style="display: none;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="language">Proofreading Language</label>
+                    <input type="text" 
+                           id="language" 
+                           name="language" 
+                           placeholder="Type to search languages (e.g., Spanish, es, French, fr)"
+                           list="language-list"
+                           required>
+                    <datalist id="language-list"></datalist>
+                    <small>Search by language name or code</small>
+                    <input type="hidden" id="language-code" name="language_code">
+                </div>
+
+                <div class="form-group">
+                    <label for="iteration">Iteration</label>
+                    <select id="iteration" name="iteration" required>
+                        <option value="1st">1st Proofreading</option>
+                        <option value="2nd">2nd Proofreading</option>
+                        <option value="3rd">3rd Proofreading</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="urgency">Urgency</label>
+                    <select id="urgency" name="urgency" required>
+                        <option value="not urgent">Not Urgent</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="preview-btn" class="btn btn-secondary">Preview Issue</button>
+                    <button type="submit" class="btn btn-primary">Create Issue</button>
+                </div>
+            </form>
+
+            <div id="message" class="alert" style="display: none;"></div>
+
+            <div id="preview-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Issue Preview</h2>
+                    <div id="preview-content"></div>
+                    <div class="modal-actions">
+                        <button id="confirm-create" class="btn btn-primary">Create Issue</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Load courses for autocomplete
+        async function loadCourses() {
+            try {
+                const response = await fetch('/api/courses');
+                const data = await response.json();
+                
+                const datalist = document.getElementById('course-list');
+                datalist.innerHTML = '';
+                
+                data.courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course;
+                    datalist.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading courses:', error);
+            }
+        }
+
+        // Load course info when course is selected
+        document.getElementById('course_id').addEventListener('change', async (e) => {
+            const courseId = e.target.value;
+            const infoDiv = document.getElementById('course-info');
+            
+            if (!courseId) {
+                infoDiv.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/course/${courseId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    infoDiv.innerHTML = `<strong>Course:</strong> ${data.title}`;
+                    infoDiv.style.display = 'block';
+                } else {
+                    infoDiv.style.display = 'none';
+                }
+            } catch (error) {
+                infoDiv.style.display = 'none';
+            }
+        });
+
+        // Language search functionality
+        let languageTimeout;
+        let selectedLanguageCode = '';
+        
+        const languageInput = document.getElementById('language');
+        const languageCodeInput = document.getElementById('language-code');
+        
+        async function loadLanguages(query = '') {
+            try {
+                const response = await fetch(`/api/languages/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                const datalist = document.getElementById('language-list');
+                datalist.innerHTML = '';
+                
+                data.languages.forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang.display;
+                    option.setAttribute('data-code', lang.code);
+                    datalist.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading languages:', error);
+            }
+        }
+        
+        languageInput.addEventListener('input', (e) => {
+            clearTimeout(languageTimeout);
+            const query = e.target.value;
+            
+            // Check if the value matches a datalist option
+            const options = document.querySelectorAll('#language-list option');
+            let matched = false;
+            
+            options.forEach(option => {
+                if (option.value === query) {
+                    selectedLanguageCode = option.getAttribute('data-code');
+                    languageCodeInput.value = selectedLanguageCode;
+                    matched = true;
+                }
+            });
+            
+            if (!matched) {
+                selectedLanguageCode = '';
+                languageCodeInput.value = '';
+            }
+            
+            languageTimeout = setTimeout(() => {
+                loadLanguages(query);
+            }, 300);
+        });
+        
+        languageInput.addEventListener('blur', () => {
+            // Validate that a language was selected
+            if (!selectedLanguageCode) {
+                languageInput.setCustomValidity('Please select a valid language from the list');
+            } else {
+                languageInput.setCustomValidity('');
+            }
+        });
+
+        // Preview functionality
+        document.getElementById('preview-btn').addEventListener('click', async () => {
+            const formData = new FormData(document.getElementById('quiz-form'));
+            const data = Object.fromEntries(formData);
+            
+            // Use the language code instead of display text
+            data.language = selectedLanguageCode;
+            
+            try {
+                const response = await fetch('/quiz/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const preview = await response.json();
+                    
+                    const content = `
+                        <h3>Title</h3>
+                        <pre>${preview.title}</pre>
+                        
+                        <h3>Body</h3>
+                        <pre>${preview.body}</pre>
+                        
+                        <h3>Labels</h3>
+                        <ul>
+                            ${preview.labels.map(label => `<li>${label}</li>`).join('')}
+                        </ul>
+                        
+                        <h3>Project Fields</h3>
+                        <ul>
+                            ${Object.entries(preview.project_fields).map(([key, value]) => 
+                                `<li><strong>${key}:</strong> ${value}</li>`
+                            ).join('')}
+                        </ul>
+                    `;
+                    
+                    document.getElementById('preview-content').innerHTML = content;
+                    document.getElementById('preview-modal').style.display = 'block';
+                } else {
+                    const error = await response.json();
+                    showMessage('Error: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error generating preview: ' + error.message, 'error');
+            }
+        });
+
+        // Modal close
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('preview-modal').style.display = 'none';
+        });
+
+        // Create issue
+        async function createIssue() {
+            const formData = new FormData(document.getElementById('quiz-form'));
+            const data = Object.fromEntries(formData);
+            
+            // Use the language code instead of display text
+            data.language = selectedLanguageCode;
+            
+            showMessage('Creating issue...', 'info');
+            
+            try {
+                const response = await fetch('/quiz/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    window.location.href = `/success?url=${encodeURIComponent(result.issue_url)}&number=${result.issue_number}`;
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error creating issue: ' + error.message, 'error');
+            }
+        }
+
+        // Form submission
+        document.getElementById('quiz-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            createIssue();
+        });
+
+        // Confirm create from preview
+        document.getElementById('confirm-create').addEventListener('click', () => {
+            document.getElementById('preview-modal').style.display = 'none';
+            createIssue();
+        });
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.style.display = 'block';
+        }
+
+        // Initialize
+        loadCourses();
+        loadLanguages();
+    </script>
+</body>
+</html>
