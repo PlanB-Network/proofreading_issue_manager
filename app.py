@@ -1013,7 +1013,7 @@ def preview_quiz_issue():
         title = f"[QUIZ-PROOFREADING] {data['course_id']} - {data['language']}"
         
         # Build URLs
-        quiz_main_folder = f"https://github.com/PlanB-Network/bitcoin-educational-content/tree/dev/courses/{data['course_id']}/quizz"
+        quiz_main_folder = f"https://github.com/PlanB-Network/bitcoin-educational-content/tree/dev/courses/{data['course_id']}/quiz"
         
         # Build issue body
         body_lines = [
@@ -1024,7 +1024,7 @@ def preview_quiz_issue():
         
         # Labels
         labels = [
-            "content - quizz",
+            "content - quiz",
             f"language - {data['language']}"
         ]
         
@@ -1037,7 +1037,7 @@ def preview_quiz_issue():
                 'Language': data['language'],
                 'Iteration': data['iteration'],
                 'Urgency': data['urgency'],
-                'Content Type': 'Quizz'
+                'Content Type': 'Quiz'
             }
         }
         
@@ -1066,7 +1066,7 @@ def create_quiz_issue():
         title = f"[QUIZ-PROOFREADING] {data['course_id']} - {data['language']}"
         
         # Build URLs
-        quiz_main_folder = f"https://github.com/PlanB-Network/bitcoin-educational-content/tree/dev/courses/{data['course_id']}/quizz"
+        quiz_main_folder = f"https://github.com/PlanB-Network/bitcoin-educational-content/tree/dev/courses/{data['course_id']}/quiz"
         
         # Build issue body
         body_lines = [
@@ -1077,7 +1077,7 @@ def create_quiz_issue():
         
         # Labels
         labels = [
-            "content - quizz",
+            "content - quiz",
             f"language - {data['language']}"
         ]
         
@@ -1090,7 +1090,7 @@ def create_quiz_issue():
             'Language': data['language'],
             'Iteration': data['iteration'],
             'Urgency': data['urgency'],
-            'Content Type': 'Quizz'
+            'Content Type': 'Quiz'
         }
         
         github.link_to_project(issue, Config.GITHUB_PROJECT_ID, project_fields)
