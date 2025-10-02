@@ -322,22 +322,25 @@ def api_weblate_language_search():
 def preview_course_issue():
     """Preview the issue before creation"""
     data = request.get_json()
-    
+
     manager = get_course_manager()
     if not manager:
         return jsonify({'error': 'Repository path not configured'}), 400
-    
+
     try:
         # Get course info
         course_info = manager.get_course_info(data['course_id'])
-        
+
         # Build URLs
         pbn_url = manager.build_pbn_url(course_info['title'], course_info['uuid'], data['language'])
         github_urls = manager.build_github_urls(data['course_id'], data['language'], data['branch'])
-        
+
         # Build issue title
-        title = f"[PROOFREADING] {data['course_id']} - {data['language']}"
-        
+        if data.get('include_quiz'):
+            title = f"[PROOFREADING] {data['course_id']} + quiz - {data['language']}"
+        else:
+            title = f"[PROOFREADING] {data['course_id']} - {data['language']}"
+
         # Build issue body
         body_lines = [f"en PBN version: {pbn_url}"]
         for lang, url in github_urls:
@@ -345,16 +348,25 @@ def preview_course_issue():
                 body_lines.append(f"en github version: {url}")
             else:
                 body_lines.append(f"{lang} github version: {url}")
-        
+
+        # Add quiz folder if requested
+        if data.get('include_quiz'):
+            quiz_folder_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/tree/{data['branch']}/courses/{data['course_id']}/quiz"
+            body_lines.append(f"Quiz folder: {quiz_folder_url}")
+
         body = '\n'.join(body_lines)
-        
+
         # Labels
         labels = [
             "content - course",
             "content proofreading",
             f"language - {data['language']}"
         ]
-        
+
+        # Add quiz label if requested
+        if data.get('include_quiz'):
+            labels.insert(1, "content - quiz")  # Insert after "content - course"
+
         preview = {
             'title': title,
             'body': body,
@@ -367,7 +379,7 @@ def preview_course_issue():
                 'Content Type': 'Course'  # Changed from 'course' to 'Course'
             }
         }
-        
+
         return jsonify(preview)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -394,7 +406,10 @@ def create_course_issue():
         github_urls = manager.build_github_urls(data['course_id'], data['language'], data['branch'])
         
         # Build issue title
-        title = f"[PROOFREADING] {data['course_id']} - {data['language']}"
+        if data.get('include_quiz'):
+            title = f"[PROOFREADING] {data['course_id']} + quiz - {data['language']}"
+        else:
+            title = f"[PROOFREADING] {data['course_id']} - {data['language']}"
         
         # Build issue body
         body_lines = [f"en PBN version: {pbn_url}"]
@@ -403,16 +418,25 @@ def create_course_issue():
                 body_lines.append(f"en github version: {url}")
             else:
                 body_lines.append(f"{lang} github version: {url}")
-        
+
+        # Add quiz folder if requested
+        if data.get('include_quiz'):
+            quiz_folder_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/tree/{data['branch']}/courses/{data['course_id']}/quiz"
+            body_lines.append(f"Quiz folder: {quiz_folder_url}")
+
         body = '\n'.join(body_lines)
-        
+
         # Labels
         labels = [
             "content - course",
             "content proofreading",
             f"language - {data['language']}"
         ]
-        
+
+        # Add quiz label if requested
+        if data.get('include_quiz'):
+            labels.insert(1, "content - quiz")  # Insert after "content - course"
+
         # Create issue
         issue = github.create_issue(title, body, labels)
         

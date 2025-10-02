@@ -73,6 +73,14 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label for="include_quiz">Add quiz</label>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="include_quiz" name="include_quiz">
+                        <label for="include_quiz" class="checkbox-label">Include quiz folder link and add quiz label to the issue</label>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" id="preview-btn" class="btn btn-secondary">Preview Issue</button>
                     <button type="submit" class="btn btn-primary">Create Issue</button>
@@ -293,9 +301,12 @@
         document.getElementById('preview-btn').addEventListener('click', async () => {
             const formData = new FormData(document.getElementById('course-form'));
             const data = Object.fromEntries(formData);
-            
+
             // Use the language code instead of display text
             data.language = selectedLanguageCode;
+
+            // Handle checkbox - convert to boolean
+            data.include_quiz = document.getElementById('include_quiz').checked;
             
             try {
                 const response = await fetch('/course/preview', {
@@ -349,9 +360,12 @@
         async function createIssue() {
             const formData = new FormData(document.getElementById('course-form'));
             const data = Object.fromEntries(formData);
-            
+
             // Use the language code instead of display text
             data.language = selectedLanguageCode;
+
+            // Handle checkbox - convert to boolean
+            data.include_quiz = document.getElementById('include_quiz').checked;
             
             showMessage('Creating issue...', 'info');
             
