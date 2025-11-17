@@ -17,7 +17,7 @@ Example:
 
 ### Body
 ```
-English PBN Version: https://planb.network/en/courses/{course_id}/{course-title-slug}-{uuid}
+English PBN Version: https://planb.academy/en/courses/{course_id}/{course-title-slug}-{uuid}
 EN GitHub Version: https://github.com/PlanB-Network/bitcoin-educational-content/blob/{branch}/courses/{course_id}/en.md
 {language} GitHub Version: https://github.com/PlanB-Network/bitcoin-educational-content/blob/{branch}/courses/{course_id}/{language}.md
 Workspace link shared privately
@@ -25,7 +25,7 @@ Workspace link shared privately
 
 Example:
 ```
-English PBN Version: https://planb.network/en/courses/btc101/bitcoin-what-is-it-97b8bac2-36c5-4bc5-8e5e-85ab61c61ed3
+English PBN Version: https://planb.academy/en/courses/btc101/bitcoin-what-is-it-97b8bac2-36c5-4bc5-8e5e-85ab61c61ed3
 EN GitHub Version: https://github.com/PlanB-Network/bitcoin-educational-content/blob/dev/courses/btc101/en.md
 es GitHub Version: https://github.com/PlanB-Network/bitcoin-educational-content/blob/dev/courses/btc101/es.md
 Workspace link shared privately

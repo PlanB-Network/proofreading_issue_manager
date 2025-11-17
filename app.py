@@ -247,7 +247,7 @@ def api_weblate_languages():
     
     try:
         # Fetch languages from Weblate API
-        response = requests.get('https://weblate.planb.network/api/languages/', timeout=10)
+        response = requests.get('https://weblate.planb.academy/api/languages/', timeout=10)
         response.raise_for_status()
         
         weblate_data = response.json()
@@ -682,12 +682,12 @@ def preview_tutorial_section_issue():
         title = f"[PROOFREADING] {section}_section - {data['language']}"
         
         # Build URLs
-        pbn_url = f"https://planb.network/{data['language']}/tutorials/{section}"
+        pbn_url = f"https://planb.academy/{data['language']}/tutorials/{section}"
         github_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/tutorials/{section}"
         
         # Build issue body
         body_lines = [
-            f"English PBN Version: https://planb.network/en/tutorials/{section}",
+            f"English PBN Version: https://planb.academy/en/tutorials/{section}",
             f"Folder GitHub Version: {github_url}"
         ]
         
@@ -734,12 +734,12 @@ def create_tutorial_section_issue():
         title = f"[PROOFREADING] {section}_section - {data['language']}"
         
         # Build URLs
-        pbn_url = f"https://planb.network/{data['language']}/tutorials/{section}"
+        pbn_url = f"https://planb.academy/{data['language']}/tutorials/{section}"
         github_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/tutorials/{section}"
         
         # Build issue body
         body_lines = [
-            f"English PBN Version: https://planb.network/en/tutorials/{section}",
+            f"English PBN Version: https://planb.academy/en/tutorials/{section}",
             f"Folder GitHub Version: {github_url}"
         ]
         
@@ -903,12 +903,12 @@ def preview_video_course_issue():
         title = f"[VIDEO-PROOFREADING] {data['course_id']} - {data['language']}"
         
         # Build URLs
-        planb_url = f"https://planb.network/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
+        planb_url = f"https://planb.academy/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
         github_base_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/courses/{data['course_id']}"
         
         # Build issue body
         body_lines = [
-            f"English PBN Version: https://planb.network/en/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}",
+            f"English PBN Version: https://planb.academy/en/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}",
             f"EN GitHub Version: {github_base_url}/en.md",
             f"{data['language']} GitHub Version: {github_base_url}/{data['language']}.md",
             f"Workspace link shared privately"
@@ -962,12 +962,12 @@ def create_video_course_issue():
         title = f"[VIDEO-PROOFREADING] {data['course_id']} - {data['language']}"
         
         # Build URLs
-        planb_url = f"https://planb.network/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
+        planb_url = f"https://planb.academy/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
         github_base_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/courses/{data['course_id']}"
         
         # Build issue body
         body_lines = [
-            f"English PBN Version: https://planb.network/en/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}",
+            f"English PBN Version: https://planb.academy/en/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}",
             f"EN GitHub Version: {github_base_url}/en.md",
             f"{data['language']} GitHub Version: {github_base_url}/{data['language']}.md",
             f"Workspace link shared privately"
@@ -1159,7 +1159,7 @@ def preview_image_course_issue():
         title = f"[IMAGE-PROOFREADING] {data['course_id']} - {data['language']}"
         
         # Build URLs
-        planb_url = f"https://planb.network/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
+        planb_url = f"https://planb.academy/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
         github_base_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/courses/{data['course_id']}/assets"
         
         # Build issue body
@@ -1216,7 +1216,7 @@ def create_image_course_issue():
         title = f"[IMAGE-PROOFREADING] {data['course_id']} - {data['language']}"
         
         # Build URLs
-        planb_url = f"https://planb.network/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
+        planb_url = f"https://planb.academy/{data['language']}/courses/{data['course_id']}/{course_info['title_slug']}-{course_info['uuid']}"
         github_base_url = f"https://github.com/PlanB-Network/bitcoin-educational-content/blob/{data['branch']}/courses/{data['course_id']}/assets"
         
         # Build issue body

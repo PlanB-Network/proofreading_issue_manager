@@ -130,7 +130,7 @@ class TutorialManager:
         clean_title = clean_title.strip('-')
         
         # Build URL: /tutorials/{category}/{tutorial_name}/{title-slug}-{uuid}
-        return f"https://planb.network/{lang}/tutorials/{category}/{tutorial_name}/{clean_title}-{uuid}"
+        return f"https://planb.academy/{lang}/tutorials/{category}/{tutorial_name}/{clean_title}-{uuid}"
     
     def build_github_urls(self, category, tutorial_name, lang, branch='dev'):
         """Build GitHub URLs (EN + selected language if different)"""

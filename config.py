@@ -92,7 +92,7 @@ class Config:
     }
     
     # Weblate configuration
-    WEBLATE_BASE_URL = 'https://weblate.planb.network/projects/planb-network-website/website-elements'
+    WEBLATE_BASE_URL = 'https://weblate.planb.academy/projects/planb-network-website/website-elements'
     
     @classmethod
     def save_config(cls, config_data):

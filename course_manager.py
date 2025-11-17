@@ -77,7 +77,7 @@ class CourseManager:
         clean_title = re.sub(r'[-\s]+', '-', clean_title)
         clean_title = clean_title.strip('-')
         
-        return f"https://planb.network/{lang}/courses/{clean_title}-{uuid}"
+        return f"https://planb.academy/{lang}/courses/{clean_title}-{uuid}"
     
     def build_github_urls(self, course_id, lang, branch='dev'):
         """Build GitHub URLs (EN + selected language if different)"""
